@@ -2,10 +2,14 @@ patterns:
   # Block Logic
   - regex: '--<(!?)(\w+)(?::(\w+))?'
     action: block_start
+  - regex: '--\s*<\{\s*(.*?)\s*\}'
+    action: block_start_jsonpath
   - regex: '-->|--(\w+)>'
     action: block_end
 
   # Line Filter Tags
+  - regex: '--\s*#\{\s*(.*?)\s*\}'
+    action: line_filter_jsonpath
   - regex: '#(!?)(\w+)(?::(!?)(\w+))?'
     action: line_filter
 

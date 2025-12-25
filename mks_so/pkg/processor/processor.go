@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/expr-lang/expr"
 	"github.com/spf13/viper"
 )
 
@@ -37,6 +38,8 @@ func InitConfig() {
 	if len(configs) == 0 {
 		// Fallbacks
 		configs = []PatternConfig{
+			{Regex: `--\s*<\{\s*(.*?)\s*\}`, Action: "block_start_jsonpath"},
+			{Regex: `--\s*#\{\s*(.*?)\s*\}`, Action: "line_filter_jsonpath"},
 			{Regex: `\$1->[$>^&@]{0,1}'([^']+)'`, Action: "line_filter_legacy"},
 			{Regex: `\B[\$:]([a-zA-Z_]\w*)`, Action: "replace_delete"},
 		}
@@ -124,6 +127,15 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 					inBlock = true
 					blockKeep = cond
 				}
+			} else if cp.Action == "block_start_jsonpath" {
+				matches := cp.Re.FindStringSubmatch(line)
+				if len(matches) > 0 {
+					// Group 1 is the expression
+					exprStr := matches[1]
+					cond := evaluateJsonPath(exprStr, inputMap)
+					inBlock = true
+					blockKeep = cond
+				}
 			} else if cp.Action == "block_end" {
 				if cp.Re.MatchString(line) {
 					inBlock = false
@@ -150,6 +162,16 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 				}
 
 				switch cp.Action {
+				case "line_filter_jsonpath":
+					// #{ expression }
+					matches := cp.Re.FindAllStringSubmatch(line, -1)
+					for _, m := range matches {
+						exprStr := m[1]
+						if !evaluateJsonPath(exprStr, inputMap) {
+							shouldDeleteLine = true
+							break
+						}
+					}
 				case "line_filter":
 					// #(!?)(\w+)(?::(!?)(\w+))?
 					// Groups: 1 !, 2 key, 3 val!, 4 val
@@ -297,4 +319,41 @@ func checkCondition(inputMap map[string]interface{}, key string, valStr string, 
 		return !match
 	}
 	return match
+}
+
+func evaluateJsonPath(expression string, inputMap map[string]interface{}) bool {
+	// Env wrapping
+	env := map[string]interface{}{
+		"$": inputMap,
+	}
+
+	options := []expr.Option{
+		expr.Env(env),
+		// Register "exists" function
+		expr.Function("exists", func(params ...interface{}) (interface{}, error) {
+			if len(params) == 0 {
+				return false, nil
+			}
+			// If param is nil, key is missing
+			return params[0] != nil, nil
+		}),
+	}
+
+	program, err := expr.Compile(expression, options...)
+	if err != nil {
+		fmt.Printf("Error compiling expression '%s': %v\n", expression, err)
+		return false
+	}
+
+	output, err := expr.Run(program, env)
+	if err != nil {
+		// Runtime error usually means failure of condition
+		return false
+	}
+
+	res, ok := output.(bool)
+	if !ok {
+		return false
+	}
+	return res
 }

@@ -107,9 +107,33 @@ and mk.id = ( $1->>'id' )
 
 ---
 
+## 5. JSONPath Logic
+The parser supports conditional logic using boolean expressions with JSONPath selectors. This is similar to PostgreSQL's `jsonb_path_match`.
+
+**Syntax:**
+- Block: `--<{ EXPRESSION }` ... `-->`
+- Line: `... -- #{ EXPRESSION }`
+
+**Expression Logic:**
+- Uses standard operators: `&&` (AND), `||` (OR), `==` (Equals), `!=` (Not Equals), etc.
+- `$` represents the root input JSON object.
+- `exists($.key)` checks if a key exists in the input.
+
+**Example:**
+```sql
+--<{ exists($.key1) || exists($.key2) }
+    , 'key1 or key2' as "isExistOrBlock"
+-->
+
+, 'burgonya "ok" exists' as "burgonya"   -- #{ $.burgonya == "ok" }
+```
+
+---
+
+
 ## Summary of Action Priorities
-1.  **Block Logic**: Checked first. If a block is "skipped", all lines inside are marked deleted (except strictly nested logic if supported, currently flat).
-2.  **Line Tags**: Checked next. If condition fails, line is deleted.
+1.  **Block Logic** (Standard & JSONPath): Checked first.
+2.  **Line Tags** (Standard & JSONPath): Checked next. If condition fails, line is deleted.
 3.  **Substitutions**: 
     -   `:key` / `$key`: If key missing -> Delete line.
     -   `%key%`: If key missing -> Empty string (Line kept).
