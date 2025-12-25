@@ -1,0 +1,30 @@
+name: Build Extension
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-server-dev-all gcc make
+
+      - name: Grant execution permissions
+        run: chmod +x build_extension.sh
+
+      - name: Run Build Script
+        run: ./build_extension.sh

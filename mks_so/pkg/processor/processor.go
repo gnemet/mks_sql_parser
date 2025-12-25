@@ -99,6 +99,14 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 	inBlock := false
 	blockKeep := true // If inBlock is true, this determines if we keep lines
 
+	// Check for minify option
+	minify := false
+	if mVal, ok := inputMap["minify"]; ok {
+		if mBool, isBool := mVal.(bool); isBool && mBool {
+			minify = true
+		}
+	}
+
 	first := true
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -265,17 +273,31 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 		}
 
 		if lineDeleted {
+			if minify {
+				continue
+			}
 			line = fmt.Sprintf("-- deleted: %s", line)
 		} else {
 			// Keep
-			// Only append " -- kept" if it was a conditional line?
-			// User examples showed "-- kept" on lines that had checks.
-			// Simple approach: append kept to everything valid?
-			// Or try to detect if we did something?
-			// Existing logic appended it. Let's append if it contains markers or replacements?
-			// "if key exists then keep the line , mark it comment"
-			// Let's stick to appending " -- kept" for now as it aids debugging/verification.
-			line = line + " -- kept"
+			if minify {
+				// Strip comments
+				if idx := strings.Index(line, "--"); idx != -1 {
+					line = line[:idx]
+				}
+				line = strings.TrimSpace(line)
+				if line == "" {
+					continue
+				}
+			} else {
+				// Only append " -- kept" if it was a conditional line?
+				// User examples showed "-- kept" on lines that had checks.
+				// Simple approach: append kept to everything valid?
+				// Or try to detect if we did something?
+				// Existing logic appended it. Let's append if it contains markers or replacements?
+				// "if key exists then keep the line , mark it comment"
+				// Let's stick to appending " -- kept" for now as it aids debugging/verification.
+				line = line + " -- kept"
+			}
 		}
 
 		if !first {

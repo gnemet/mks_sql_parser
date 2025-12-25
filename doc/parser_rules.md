@@ -10,11 +10,11 @@ Blocks allow you to conditionally include or exclude multiple lines of SQL based
 - End: `-->` (or `-->TAG`)
 
 **Conditions:**
-| Syntax | Logic | Description |
-| :--- | :--- | :--- |
-| `--<key` | **Exists** | Block is **kept** if `key` exists in JSON. |
-| `--<!key` | **Not Exists** | Block is **kept** if `key` does **NOT** exist. |
-| `--<key:value` | **Equals** | Block is **kept** if `key` exists AND equals `value`. |
+| Syntax          | Logic           | Description                                                       |
+| :-------------- | :-------------- | :---------------------------------------------------------------- |
+| `--<key`        | **Exists**      | Block is **kept** if `key` exists in JSON.                        |
+| `--<!key`       | **Not Exists**  | Block is **kept** if `key` does **NOT** exist.                    |
+| `--<key:value`  | **Equals**      | Block is **kept** if `key` exists AND equals `value`.             |
 | `--<key:!value` | **Not Equals*** | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
 
 *> Note: Strict equality check. If `key` is missing, equivalence checks usually fail (block skipped).*
@@ -39,11 +39,11 @@ Line tags allow you to conditionally filter a single line of SQL. Tags are place
 - `... SQL CODE ... -- #CONDITION`
 
 **Conditions:**
-| Syntax | Logic | Description |
-| :--- | :--- | :--- |
-| `#key` | **Exists** | Line is **kept** if `key` exists. |
-| `#!key` | **Not Exists** | Line is **kept** if `key` does **NOT** exist. |
-| `#key:value` | **Equals** | Line is **kept** if `key` equals `value`. |
+| Syntax       | Logic          | Description                                   |
+| :----------- | :------------- | :-------------------------------------------- |
+| `#key`       | **Exists**     | Line is **kept** if `key` exists.             |
+| `#!key`      | **Not Exists** | Line is **kept** if `key` does **NOT** exist. |
+| `#key:value` | **Equals**     | Line is **kept** if `key` equals `value`.     |
 
 **Example:**
 ```sql
@@ -60,8 +60,8 @@ The parser can replace placeholders in the SQL text with values from the JSON in
 ### A. Value or Empty (`%key%`)
 Replaces the placeholder with the value. If the key is missing, it is replaced with an empty string (or simple space/removal), but the **line is kept**.
 
-| Syntax | Description |
-| :--- | :--- |
+| Syntax  | Description                                           |
+| :------ | :---------------------------------------------------- |
 | `%key%` | Replaces with `input[key]`. If missing, becomes `""`. |
 
 **Example:**
@@ -74,10 +74,10 @@ Replaces the placeholder with the value. If the key is missing, it is replaced w
 ### B. Value or Delete (`:key` / `$key`)
 Replaces the placeholder with the value. If the key is missing, the **entire line is deleted**. This is useful for SQL parameters like `:limit` or `:offset`.
 
-| Syntax | Description |
-| :--- | :--- |
+| Syntax | Description                                              |
+| :----- | :------------------------------------------------------- |
 | `:key` | Replaces with `input[key]`. If missing, **Delete Line**. |
-| `$key` | Same behavior. *(Note: `$1`, `$2` etc. are ignored)* |
+| `$key` | Same behavior. *(Note: `$1`, `$2` etc. are ignored)*     |
 
 **Example:**
 ```sql
@@ -138,3 +138,13 @@ The parser supports conditional logic using boolean expressions with JSONPath se
     -   `:key` / `$key`: If key missing -> Delete line.
     -   `%key%`: If key missing -> Empty string (Line kept).
 4.  **Legacy Filters**: `$1->'key'` missing -> Delete line.
+
+---
+
+## 6. Minify Mode
+If the input JSON contains `"minify": true`, the output SQL will be cleaned:
+- Deleted lines are completely removed (not commented out).
+- Comments (starting with `--`) are stripped from kept lines.
+- Empty lines are skipped.
+
+This produces a compact SQL result suitable for execution.
