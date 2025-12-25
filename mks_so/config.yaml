@@ -1,4 +1,4 @@
-version: "1.0.0003"
+version: "1.0.0004"
 patterns:
   # Block Logic
   - regex: '--<(!?)(\w+)(?::(\w+))?'

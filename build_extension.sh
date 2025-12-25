@@ -76,5 +76,10 @@ cp "pg_extension/mks_parser.c" latest/
 cp "pg_extension/Makefile" latest/
 cp "pg_extension/README.md" latest/
 
+# Copy documentation
+mkdir -p latest/doc
+cp doc/*.md latest/doc/
+
 echo "Done. Version bumped to $NEW_VERSION"
+
 
