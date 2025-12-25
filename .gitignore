@@ -1,0 +1,19 @@
+# Binaries
+*.so
+*.o
+*.a
+test/gotest
+test/test_app
+mks_so/mks_sql.so
+mks_so/mks_sql.h
+
+# IDEs
+.idea/
+.vscode/
+
+# Logs
+*.log
+debug_output*.txt
+
+# OS
+.DS_Store

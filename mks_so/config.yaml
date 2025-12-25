@@ -1,0 +1,22 @@
+patterns:
+  # Block Logic
+  - regex: '--<(!?)(\w+)(?::(\w+))?'
+    action: block_start
+  - regex: '-->|--(\w+)>'
+    action: block_end
+
+  # Line Filter Tags
+  - regex: '#(!?)(\w+)(?::(!?)(\w+))?'
+    action: line_filter
+
+  # Postgres Filter (Legacy support, treated as line filter)
+  - regex: '\$1->[$>^&@]*''([^'']+)'''
+    action: line_filter_legacy
+
+  # Replace or Delete (Standard SQL params and legacy $)
+  - regex: '\B[\$:]([a-zA-Z_]\w*)'
+    action: replace_delete
+
+  # Replace or Empty (%key%)
+  - regex: '%(\w+)%'
+    action: replace_empty

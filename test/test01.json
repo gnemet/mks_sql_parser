@@ -1,0 +1,13 @@
+[
+    {
+        "input": "Magyar%",
+        "statusz": "elbiralas",
+        "limit": 30
+    },
+    {
+        "input": "Magyar%",
+        "statusz": "elbiralas",
+        "operator": "=",
+        "limit": 12
+    }
+]

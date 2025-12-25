@@ -1,0 +1,80 @@
+--<input
+with input_filter( hn ) as (
+      select array_agg ( distinct unaccent ( kas_ny.hivatkozasi_nev ) ) as hn
+        from (
+          select hivatkozasi_nev
+            from kas_ny_allampolg
+           where lower( unaccent( megnevezes ) ) $operator ( $1->>'input' )
+          union
+          select hivatkozasi_nev
+            from kas_ny_nemzetiseg
+           where lower( unaccent( megnevezes ) ) $operator ( $1->>'input' )
+          union
+          select hivatkozasi_nev
+            from kas_ny_nyelvek
+           where lower( unaccent( megnevezes ) ) $operator ( $1->>'input' )
+          union
+          select hivatkozasi_nev
+            from kas_ny_orszag
+           where lower( unaccent( orszag_megnevezes_attrib ) ) $operator ( $1->>'input' )
+          ) as kas_ny
+    )
+--input>
+--<count:true
+  select to_jsonb( count(1) )
+--count>
+--<count:false
+  select json_agg( to_jsonb( "found" )
+                   order by $1->>'orderBy'
+                                             ) as "result"
+    from (
+      select distinct on( mk.az ) 
+            mk.az                           as id
+          , 'MatKeresesEntity_' || mk.az    as key
+          , false                           as created
+          , false                           as edited
+          , false                           as deleted
+          , mk.letaz                        as letrehozo
+          , mk.letda::timestamp( 6 )        as "letrehozasDatuma"
+          , mk.karaz                        as karbantarto
+          , mk.karda::timestamp( 6 )        as "karbantartasDatuma"
+          , mk.verzio                       as verzio
+          , mk.kezdes_ts::timestamp( 6 )    as kezdes
+          , mk.befejezes_ts::timestamp( 6 ) as befejezes
+          , mk.szamossag                    as szamossag
+          , mk.futas_info::text             as "futasInfo"
+          , mk.adatreteg                    as adatreteg
+          , mk.eredet                       as eredet
+          , array[ mkkek.kuk_eljaras_az ]   as "eljarasIdList"
+          , mk.input_adat::text             as input
+          , mk.futas_statusz                as statusz
+          , mk.indito_felh                  as "letrehozoFelhasznalo"
+          , mk.indok                        as "keresesIndoka"
+          , mk.jovahagyo_felh               as "jovahagyoFelhasznalo"
+          , mk.jovahagyas_idopont           as "jovahagyasIdopont"
+          , mk.konfig_nev                   as "keresesKonfiguracio"
+          , coalesce( ( mk.eredmeny_treetable->>'megfelelt_db' )::int, 0 ) as "treetableSzamossag"
+--count>
+        from mke_kereses               as mk
+        join mke_kereses_kuk_eljaras_k as mkkek on mkkek.mke_kereses_az = mk.az
+                                               and mkkek.kuk_eljaras_az = any (($1->'eljarasAzonosito')::numeric[])
+        join jsonb_path_query( mk.input_adat, '$.input.**' ) as jpq( value ) on jsonb_typeof( jpq.value ) = 'string' -- #input
+  cross join input_filter -- #input
+       where true
+         and mk.indito_felh     = any (($1->'adatjogMunkaAzLista')::text[])
+         and mk.indito_felh     = ( $1->>'letrehozoFelhasznalo' )
+         and mk.jovahagyo_felh  = ( $1->>'jovahagyoFelhasznalo' )
+         and mk.adatreteg       = ( $1->>'adatreteg' )
+         and mk.futas_statusz   = ( $1->>'statusz' )
+         and mk.az              = ( $1->^'id' )
+         and mk.konfig_nev      = ( $1->>'keresesKonfiguracio' )
+         and mk.kezdes_ts      >= ( $1->>'kezdesKezdete' )::timestamptz
+         and mk.befejezes_ts   <= ( $1->>'kezdesVege' )::timestamptz
+         and mk.indok           = ( $1->#'keresesIndoka' )
+         and ( jpq.value->>0 = any( input_filter.hn ) or lower( unaccent( jpq.value->>0 ) ) $operator ( $1->>'input' ) )
+--<count:false
+   order by mk.az, mk.kezdes_ts desc
+       limit $limit
+      offset $offset
+         ) as "found"
+--count>
