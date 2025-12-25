@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	processor.InitConfig()
+	// Config loaded lazily
 }
 
 //export mksSql

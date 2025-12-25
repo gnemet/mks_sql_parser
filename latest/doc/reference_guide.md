@@ -44,11 +44,21 @@ SELECT mks_parser(
 Conditionally include/exclude chunks of SQL.
 - **Syntax**: `--<CONDITION` ... `-->`
 - **JSONPath Block**: `--<{ EXPRESSION }` ... `-->`
+- **Nested Path Block**: `--< $1 #>> '{a,b}' [= 'val'] >` ... `-->`
+- **Simple Key Block**: `--< #'key' = 'val' >` ... `-->`
+
+
 
 ### Line Filters
 Conditionally filter single lines.
 - **Syntax**: `... -- #CONDITION`
 - **JSONPath Line**: `... -- #{ EXPRESSION }`
+- **Nested Path**: `$1 #>> '{a,b}'` (Existence) or `$1 #>> '{a,b}' = 'val'` (Value)
+- **Simple Key**: `... -- #'key' = 'val'` (Supports `=,!=,~,~*,~~,%,%>`)
+
+
+
+
 
 ### Substitutions
 - **Values**: `%key%` -> Replaced with value or empty string.

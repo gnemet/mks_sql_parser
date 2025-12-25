@@ -148,3 +148,63 @@ If the input JSON contains `"minify": true`, the output SQL will be cleaned:
 - Empty lines are skipped.
 
 This produces a compact SQL result suitable for execution.
+
+---
+
+## 7. Nested JSON Path Filters (Arrays)
+Support for PostgreSQL-style nested path access. The parser checks if the full path exists in the input JSON.
+
+**Syntax:**
+- Line Filter: `$1 #>> '{key1,key2,...}'` (Existence check)
+- Line Value Check: `$1 #>> '{key1,key2,...}' = 'value'`
+- Block Start: `--< $1 #>> '{key1,key2,...}' [= 'value'] >`
+
+**Logic:**
+- **Existence**: If any key in the path is missing or null, the line/block is skipped.
+- **Value Check**: If `= 'value'` is provided, the value at the path must equal the string representation of the provided value.
+
+**Example:**
+```sql
+-- Line value check
+and status = 'active' -- $1 #>> '{user,status}' = 'active'
+
+-- Block existence check
+--< $1 #>> '{feature_flags,new_ui}' >
+SELECT * FROM new_ui_table;
+-->
+```
+
+---
+
+## 8. Simple Key Value Checks
+Simplified syntax for checking top-level keys without JSONPath.
+
+**Syntax:**
+- Line: `-- #'key' OP 'value'`
+- Block: `--< #'key' OP 'value' >` ... `-->`
+
+**Operators:**
+- `=`: Equal
+- `!=`: Not Equal
+- `~`, `!~`: Regex Match (Case Sensitive)
+- `~*`, `!~*`: Regex Match (Case Insensitive)
+- `~~`, `!~~`: LIKE (SQL Standard, `%` and `_`)
+- `~~*`, `!~~*`: ILIKE (Case Insensitive LIKE)
+- `%`, `!%`: Similarity (Levenshtein distance, threshold ~0.3)
+- `%>`, `!%>`: Word Similarity (Contains check)
+
+**Example:**
+```sql
+-- Regex check
+-- #'email' ~* '@gmail\.com$'
+
+-- Like check
+-- #'name' ~~ 'J%'
+
+-- Similarity check
+-- #'desc' % 'some text'
+```
+
+
+
+

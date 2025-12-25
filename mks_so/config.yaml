@@ -1,27 +1,49 @@
-version: "1.0.0004"
+version: "1.0.0008"
 patterns:
-  # Block Logic
+  # Block Logic: Defines the start and end of conditional or iterative blocks
+  # Matches standard block starts: --<tag, --<!tag (negated), or --<tag:subtag
   - regex: '--<(!?)(\w+)(?::(\w+))?'
     action: block_start
+  # Matches JSONPath block starts: --<{ $.path.to.key }
   - regex: '--\s*<\{\s*(.*?)\s*\}'
     action: block_start_jsonpath
+  # Matches block ends: --> or --tag>
   - regex: '-->|--(\w+)>'
     action: block_end
+  # Matches nested block starts using Postgres array syntax: --< $1 #> '{key}' = 'value' >
+  - regex: '--\s*<\s*\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?\s*>'
+    action: block_start_nested
+  # Matches simple conditional block starts: --< #key = 'value' > or --< #key != 'value' > or other ops
+  - regex: '--\s*<\s*#''?([^'']+)''\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)''\s*>'
+    action: block_start_simple_extended
 
-  # Line Filter Tags
+  # Line Filter Tags: Controls visibility of a single line based on keys
+  # Matches JSONPath line filters: --#{ $.path.to.key }
   - regex: '--\s*#\{\s*(.*?)\s*\}'
     action: line_filter_jsonpath
+  # Matches simple conditional line filters: --#key = 'value' or other ops
+  - regex: '--\s*#''?([^'']+)''\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)'''
+    action: line_filter_simple_extended
+  # Matches standard line filters: #tag, #!tag, #tag:subtag
   - regex: '#(!?)(\w+)(?::(!?)(\w+))?'
     action: line_filter
 
-  # Postgres Filter (Legacy support, treated as line filter)
-  - regex: '\$1->[$>^&@]*''([^'']+)'''
+  # Postgres Filter: Legacy support for Postgres-style JSON operators, treated as line filters
+  # Matches: $1->'key'
+  - regex: '\$1->[$>^&@#]*''([^'']+)'''
     action: line_filter_legacy
 
-  # Replace or Delete (Standard SQL params and legacy $)
+  # Nested Keys: Matches Postgres Array Syntax for nested line filtering
+  # Matches: $1 #> '{path,to,key}' = 'value'
+  - regex: '\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?'
+    action: line_filter_nested
+
+  # Replace or Delete: Handles standard SQL parameters and legacy $ prefixes
+  # Matches: :variable_name or $variable_name
   - regex: '\B[\$:]([a-zA-Z_]\w*)'
     action: replace_delete
 
-  # Replace or Empty (%key%)
+  # Replace or Empty: Handles bracketed placeholder syntax
+  # Matches: %variable_name%
   - regex: '%(\w+)%'
     action: replace_empty
