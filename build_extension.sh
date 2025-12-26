@@ -72,6 +72,7 @@ cd ..
 
 # 8. Copy to latest/ folder
 echo "Copying artifacts to latest/..."
+rm -rf latest
 mkdir -p latest
 cp mks_so/mks_sql.so latest/
 cp "$NEW_SQL_FILE" latest/
