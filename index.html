@@ -37,6 +37,9 @@
             <button id="doc-toggle" onclick="toggleDoc()" title="Show Reference Guide">
                 <i class="fas fa-book"></i>
             </button>
+            <button id="help-toggle" onclick="toggleHelp()" title="How to use">
+                <i class="fas fa-question-circle"></i>
+            </button>
         </div>
     </header>
 
@@ -104,6 +107,41 @@
             <h2>Reference Guide</h2>
             <div id="doc-content" class="markdown-body">
                 Loading documentation...
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleHelp()">&times;</span>
+            <h2>How to use the Tester</h2>
+            <div class="markdown-body">
+                <ol>
+                    <li><strong>Select a Test Case</strong>: Use the dropdown in the header to load pre-configured
+                        examples. This populates both SQL and JSON Editors.</li>
+                    <li><strong>Edit Code</strong>:
+                        <ul>
+                            <li><strong>SQL Text</strong>: Write your SQL query with MKS Parser syntax (e.g.,
+                                <code>--&lt;condition</code> blocks).
+                            </li>
+                            <li><strong>Input JSON</strong>: Define the variables/context for the parser.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Run Parser</strong>: Click the <strong><i class="fas fa-play"></i> Run</strong> button
+                        (or valid Test Case load) to process the SQL.</li>
+                    <li><strong>View Results</strong>: The <strong>Result</strong> pane shows the final SQL after
+                        processing.</li>
+                </ol>
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Drag & Drop</strong>: Drag <code>.sql</code> or <code>.json</code> files directly into
+                        the editors.</li>
+                    <li><strong>Upload/Download</strong>: Use the <i class="fas fa-upload"></i> buttons to load files
+                        and <i class="fas fa-download"></i> to save the result.</li>
+                    <li><strong>Auto-Validation</strong>: The JSON editor warns you if your JSON is invalid.</li>
+                    <li><strong>Docs</strong>: Click the <i class="fas fa-book"></i> icon for the full syntax reference.
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -368,10 +406,19 @@
             modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
         }
 
+        function toggleHelp() {
+            const modal = document.getElementById('help-modal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+
         window.onclick = function (event) {
-            const modal = document.getElementById('doc-modal');
-            if (event.target == modal) {
-                modal.style.display = "none";
+            const docModal = document.getElementById('doc-modal');
+            const helpModal = document.getElementById('help-modal');
+            if (event.target == docModal) {
+                docModal.style.display = "none";
+            }
+            if (event.target == helpModal) {
+                helpModal.style.display = "none";
             }
         }
 
