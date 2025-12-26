@@ -481,6 +481,26 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const text = e.target.result;
+
+                // Check if file is mks_sql_ins wrapper
+                if (text.includes("select mks_sql_ins(")) {
+                    const parsed = parseMksSqlIns(text);
+                    if (parsed) {
+                        if (parsed.info_raw) {
+                            const info = parseSqlInfo(parsed.info_raw);
+                            if (info) {
+                                document.getElementById('json-input').value = JSON.stringify(info, null, 2);
+                                validateJSON();
+                            }
+                        }
+                        if (parsed.sql_raw) {
+                            const sql = cleanSql(parsed.sql_raw);
+                            document.getElementById('sql-text').value = sql;
+                        }
+                        return; // Successfully handled wrapper
+                    }
+                }
+
                 const target = document.getElementById(targetId);
                 target.value = text;
 
@@ -490,6 +510,183 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // --- MKS SQL Parser Helpers ---
+
+        function parseMksSqlIns(content) {
+            const startIdx = content.indexOf('select mks_sql_ins(');
+            if (startIdx === -1) return null;
+
+            let idx = startIdx + 'select mks_sql_ins('.length;
+            let balance = 1;
+            let args = [];
+            let currentArg = '';
+            let inQuote = false;
+            let quoteChar = '';
+            let inDollarQuote = false;
+            let dollarTag = '';
+
+            for (; idx < content.length; idx++) {
+                const char = content[idx];
+
+                if (inDollarQuote) {
+                    currentArg += char;
+                    if (char === '$') {
+                        if (currentArg.endsWith(dollarTag)) {
+                            inDollarQuote = false;
+                        }
+                    }
+                    continue;
+                }
+
+                if (inQuote) {
+                    currentArg += char;
+                    if (char === quoteChar) {
+                        inQuote = false;
+                    }
+                    continue;
+                }
+
+                if (char === '$') {
+                    const tagMatch = content.substring(idx).match(/^(\$[a-zA-Z0-9_]*\$)/);
+                    if (tagMatch) {
+                        inDollarQuote = true;
+                        dollarTag = tagMatch[1];
+                        currentArg += char;
+                        continue;
+                    }
+                }
+
+                if (char === "'") {
+                    inQuote = true;
+                    quoteChar = "'";
+                    currentArg += char;
+                    continue;
+                }
+
+                if (char === '(') {
+                    balance++;
+                    currentArg += char;
+                    continue;
+                }
+
+                if (char === ')') {
+                    balance--;
+                    if (balance === 0) {
+                        args.push(currentArg.trim());
+                        break;
+                    }
+                    currentArg += char;
+                    continue;
+                }
+
+                if (char === ',' && balance === 1) {
+                    args.push(currentArg.trim());
+                    currentArg = '';
+                    continue;
+                }
+
+                currentArg += char;
+            }
+
+            if (args.length < 2) return null;
+
+            return {
+                info_raw: args[0],
+                sql_raw: args[1],
+                unit_test_raw: args[2],
+                data_raw: args[3]
+            };
+        }
+
+        function parseSqlInfo(raw) {
+            // Check for json_build_object
+            const match = raw.match(/^\s*json_build_object\s*\(([\s\S]*)\)\s*$/);
+            if (!match) return null;
+
+            const inner = match[1];
+            const result = {};
+            let parts = [];
+
+            let buffer = '';
+            let pBalance = 0;
+            let pInQuote = false;
+            let pQuoteChar = '';
+            let pInDollar = false;
+            let pDollarTag = '';
+
+            for (let i = 0; i < inner.length; i++) {
+                const c = inner[i];
+                if (pInDollar) {
+                    buffer += c;
+                    if (c === '$' && buffer.endsWith(pDollarTag)) pInDollar = false;
+                    continue;
+                }
+                if (pInQuote) {
+                    buffer += c;
+                    if (c === pQuoteChar) pInQuote = false;
+                    continue;
+                }
+                if (c === '$') {
+                    const tm = inner.substring(i).match(/^(\$[a-zA-Z0-9_]*\$)/);
+                    if (tm) { pInDollar = true; pDollarTag = tm[1]; }
+                }
+                if (c === "'") { pInQuote = true; pQuoteChar = "'"; }
+                if (c === '(') pBalance++;
+                if (c === ')') pBalance--;
+
+                if (c === ',' && pBalance === 0) {
+                    parts.push(buffer.trim());
+                    buffer = '';
+                } else {
+                    buffer += c;
+                }
+            }
+            if (buffer.trim()) parts.push(buffer.trim());
+
+            for (let i = 0; i < parts.length; i += 2) {
+                let key = parts[i];
+                let val = parts[i + 1];
+
+                if (!key) continue;
+                key = key.replace(/^'|'$/g, '');
+
+                if (!val) continue;
+
+                if (val.startsWith("'") && val.endsWith("'")) {
+                    val = val.substring(1, val.length - 1);
+                } else if (val.startsWith("'{") && val.endsWith("}'::text[]")) {
+                    const content = val.match(/^'\{(.*?)\}'::text\[\]$/)[1];
+                    val = content.split(',').map(s => s.trim().replace(/"/g, ''));
+                } else if (val.startsWith("$json$")) {
+                    const jContent = val.match(/^\$json\$([\s\S]*)\$json\$::json$/);
+                    if (jContent) {
+                        try {
+                            val = JSON.parse(jContent[1]);
+                        } catch (e) { val = jContent[1]; }
+                    }
+                }
+
+                if (typeof val === 'string' && val.includes("current_timestamp")) {
+                    val = "CURRENT_TIMESTAMP";
+                }
+
+                result[key] = val;
+            }
+            return result;
+        }
+
+        function cleanSql(raw) {
+            const m = raw.match(/^\$([a-zA-Z0-9_]*)\$([\s\S]*)\$\1\$/);
+            if (m) return m[2].trim();
+            // Handle single quotes
+            if (raw.startsWith("'") && raw.endsWith("'")) {
+                let s = raw.substring(1, raw.length - 1);
+                s = s.replace(/''/g, "'"); // unescape
+                return s;
+            }
+            return raw;
         }
 
         // 2. JSON Validation
