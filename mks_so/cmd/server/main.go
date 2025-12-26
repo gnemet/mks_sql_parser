@@ -31,6 +31,7 @@ func main() {
 	http.HandleFunc("/patterns", handlePatterns)
 	http.HandleFunc("/doc", handleDoc)
 	http.HandleFunc("/parser_rules.md", handleParserRules)
+	http.HandleFunc("/version", handleVersion)
 
 	port := "8080"
 	fmt.Printf("Server starting on http://localhost:%s\n", port)
@@ -110,6 +111,14 @@ func handleParserRules(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/markdown")
 	w.Write(content)
+}
+
+func handleVersion(w http.ResponseWriter, r *http.Request) {
+	version, lastBuild := config.LoadBuildInfo(nil)
+	jsonResponse(w, map[string]string{
+		"version":    version,
+		"last_build": lastBuild,
+	}, http.StatusOK)
 }
 
 func jsonResponse(w http.ResponseWriter, data interface{}, status int) {

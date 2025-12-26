@@ -125,22 +125,25 @@ func LoadTests(configBytes []byte) []TestCase {
 	return tests
 }
 
-func LoadVersion(configBytes []byte) string {
+func LoadBuildInfo(configBytes []byte) (string, string) {
 	viper.Reset()
 	viper.SetConfigType("yaml")
 
 	if configBytes != nil {
 		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
-			return "unknown"
+			return "unknown", "unknown"
 		}
 	} else {
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
 		viper.AddConfigPath("../..")
+		// Also add module root if running from pkg/config
+		viper.AddConfigPath("../../..")
+
 		if err := viper.ReadInConfig(); err != nil {
-			return "unknown"
+			return "unknown", "unknown"
 		}
 	}
 
-	return viper.GetString("version")
+	return viper.GetString("version"), viper.GetString("last_build")
 }

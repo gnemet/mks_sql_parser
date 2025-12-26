@@ -80,5 +80,6 @@ func getTests(this js.Value, args []js.Value) interface{} {
 }
 
 func getVersion(this js.Value, args []js.Value) interface{} {
-	return config.LoadVersion(configBytes)
+	ver, _ := config.LoadBuildInfo(configBytes)
+	return ver
 }

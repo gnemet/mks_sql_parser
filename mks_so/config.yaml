@@ -1,4 +1,5 @@
-version: "1.0.0008"
+version: "1.0.0009"
+last_build: "2025-12-26 17:30"
 patterns:
   - id: 1
     regex: '--<(!?)(\w+)(?::(\w+))?'
