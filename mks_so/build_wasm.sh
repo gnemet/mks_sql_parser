@@ -17,7 +17,7 @@ GOOS=js GOARCH=wasm go build -o cmd/server/static/mks.wasm cmd/wasm/main.go
 # Copy documentation to static folder for GitHub Pages
 echo "Copying documentation..."
 cp -r ../doc/reference_guide.md cmd/server/static/reference_guide.md
-# Also copy parser_rules if needed?
-# cp -r ../../doc/parser_rules.md cmd/server/static/parser_rules.md
+# Also copy parser_rules if needed
+cp -r ../doc/parser_rules.md cmd/server/static/parser_rules.md
 
 echo "Wasm build and asset copy complete."
