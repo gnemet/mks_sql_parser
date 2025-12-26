@@ -1,5 +1,5 @@
 # mks_parser extension
 comment = 'MKS SQL Parser extension'
-default_version = '1.0.0008'
+default_version = '1.0.0013'
 module_pathname = '$libdir/mks_parser'
 relocatable = true

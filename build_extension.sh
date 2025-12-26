@@ -51,6 +51,7 @@ echo "Created $NEW_SQL_FILE"
 echo "Building Go Shared Library..."
 cd mks_so
 CGO_ENABLED=1 go build -buildmode=c-shared -o mks_sql.so .
+cp mks_sql.so libmks_sql.so
 cd ..
 
 # 7. Build PostgreSQL Extension

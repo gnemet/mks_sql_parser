@@ -71,3 +71,36 @@ If input JSON contains `"minify": true`:
 - Output is compact.
 
 For detailed syntax, see [parser_rules.md](parser_rules.md).
+
+## 5. Custom Operators
+
+The parser relies on several custom PostgreSQL operators for JSONB manipulation and extraction.
+
+| Operator             | Left               | Right              | Return Type   | Description                                                               |
+| :------------------- | :----------------- | :----------------- | :------------ | :------------------------------------------------------------------------ |
+| **Comparison**       |                    |                    |               |                                                                           |
+| `===`                | `jsonb`/`anyarray` | `jsonb`/`anyarray` | `boolean`     | Checks equality of arrays ignoring element order.                         |
+| `==@`                | `jsonb`            | `jsonb`            | `boolean`     | Checks if left array is contained in right array (similarity-based).      |
+| `@==`                | `jsonb`            | `jsonb`            | `boolean`     | Checks if right array is contained in left array (similarity-based).      |
+| **Filtering**        |                    |                    |               |                                                                           |
+| `+`                  | `jsonb`            | `text`/`text[]`    | `jsonb`       | Returns JSONB object containing *only* the specified keys (skips others). |
+| **Value Extraction** |                    |                    |               |                                                                           |
+| `->#`                | `jsonb`            | `text`             | `numeric`     | Extracts numeric value by key.                                            |
+| `#>#`                | `jsonb`            | `text[]`           | `numeric`     | Extracts numeric value by path.                                           |
+| `->&`                | `jsonb`            | `text`             | `boolean`     | Extracts boolean value by key.                                            |
+| `#>&`                | `jsonb`            | `text[]`           | `boolean`     | Extracts boolean value by path.                                           |
+| `->^`                | `jsonb`            | `text`             | `bigint`      | Extracts integer value by key.                                            |
+| `#>^`                | `jsonb`            | `text[]`           | `bigint`      | Extracts integer value by path.                                           |
+| `->@`                | `jsonb`            | `text`             | `timestamp`   | Extracts timestamp value by key.                                          |
+| `#>@`                | `jsonb`            | `text[]`           | `timestamp`   | Extracts timestamp value by path.                                         |
+| **Array Extraction** |                    |                    |               |                                                                           |
+| `->>>`               | `jsonb`            | `text`             | `text[]`      | Extracts text array by key.                                               |
+| `#>>>`               | `jsonb`            | `text[]`           | `text[]`      | Extracts text array by path.                                              |
+| `->^^`               | `jsonb`            | `text`             | `integer[]`   | Extracts integer array by key.                                            |
+| `#>^^`               | `jsonb`            | `text[]`           | `integer[]`   | Extracts integer array by path.                                           |
+| `->##`               | `jsonb`            | `text`             | `numeric[]`   | Extracts numeric array by key.                                            |
+| `#>##`               | `jsonb`            | `text[]`           | `numeric[]`   | Extracts numeric array by path.                                           |
+| `->@@`               | `jsonb`            | `text`             | `timestamp[]` | Extracts timestamp array by key.                                          |
+| `#>@@`               | `jsonb`            | `text[]`           | `timestamp[]` | Extracts timestamp array by path.                                         |
+| `->&&`               | `jsonb`            | `text`             | `boolean[]`   | Extracts boolean array by key.                                            |
+| `#>&&`               | `jsonb`            | `text[]`           | `boolean[]`   | Extracts boolean array by path.                                           |
