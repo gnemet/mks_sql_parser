@@ -13,6 +13,10 @@ import (
 // compiledPatterns is now loaded from package config
 var compiledPatterns []config.CompiledPattern
 
+func SetPatterns(patterns []config.CompiledPattern) {
+	compiledPatterns = patterns
+}
+
 func ProcessSql(sqlText string, jsonInput string) string {
 	if compiledPatterns == nil {
 		compiledPatterns = config.LoadPatterns()

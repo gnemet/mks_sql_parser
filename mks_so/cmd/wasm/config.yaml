@@ -1,0 +1,248 @@
+version: "1.0.0008"
+patterns:
+  - id: 1
+    regex: '--<(!?)(\w+)(?::(\w+))?'
+    action: block_start
+    description: "Block Logic: Defines the start and end of conditional or iterative blocks. Matches standard block starts: --<tag, --<!tag (negated), or --<tag:subtag"
+  - id: 2
+    regex: '--\s*<\{\s*(.*?)\s*\}'
+    action: block_start_jsonpath
+    description: "Matches JSONPath block starts: --<{ $.path.to.key }"
+  - id: 3
+    regex: '-->|--(\w+)>'
+    action: block_end
+    description: "Matches block ends: --> or --tag>"
+  - id: 4
+    regex: '--\s*<\s*\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?\s*>'
+    action: block_start_nested
+    description: "Matches nested block starts using Postgres array syntax: --< $1 #> '{key}' = 'value' >"
+  - id: 5
+    regex: '--\s*<\s*#''?([^\s'']+)''?\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)''\s*>'
+    action: block_start_simple_extended
+    description: "Matches simple conditional block starts: --< #key = 'value' > or --< #key != 'value' > or other ops"
+
+  - id: 6
+    regex: '--\s*#\{\s*(.*?)\s*\}'
+    action: line_filter_jsonpath
+    description: "Line Filter Tags: Matches JSONPath line filters: --#{ $.path.to.key }"
+  - id: 7
+    regex: '--\s*#''?([^\s'']+)''?\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)'''
+    action: line_filter_simple_extended
+    description: "Matches simple conditional line filters: --#key = 'value' or other ops"
+  - id: 8
+    regex: '#(!?)(\w+)(?::(!?)(\w+))?'
+    action: line_filter
+    description: "Matches standard line filters: #tag, #!tag, #tag:subtag"
+
+  - id: 9
+    regex: '\$1->[$>^&@#]*''([^'']+)'''
+    action: line_filter_legacy
+    description: "Postgres Filter: Legacy support for Postgres-style JSON operators, treated as line filters. Matches: $1->'key'"
+
+  - id: 10
+    regex: '\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?'
+    action: line_filter_nested
+    description: "Nested Keys: Matches Postgres Array Syntax for nested line filtering. Matches: $1 #> '{path,to,key}' = 'value'"
+
+  - id: 11
+    regex: '\B[\$:]([a-zA-Z_]\w*)'
+    action: replace_delete
+    description: "Replace or Delete: Handles standard SQL parameters and legacy $ prefixes. Matches: :variable_name or $variable_name"
+
+  - id: 12
+    regex: '%(\w+)%'
+    action: replace_empty
+    description: "Replace or Empty: Handles bracketed placeholder syntax. Matches: %variable_name%"
+
+test:
+  - id: 12
+    input: { "operator": "'~~*'" }
+    text: |
+      select 
+      'dummy' as dummy
+      %operator% as operator
+    expected: |
+      select 
+      'dummy' as dummy
+      '~~*' as operator
+    passed: true
+
+  # Test ID 11: Replace or Delete ($variable or :variable)
+  - id: 11
+    input: { "my_var": "some_value" }
+    text: "WHERE column = $my_var"
+    expected: "WHERE column = some_value"
+    passed: true
+  - id: 11
+    input: {}
+    text: "WHERE column = $missing_var"
+    expected: ""
+    passed: true
+  - id: 11
+    input: { "my_param": "123" }
+    text: "LIMIT :my_param"
+    expected: "LIMIT 123"
+    passed: true
+
+  # Test ID 12: Replace or Empty (%variable%) - Negative/Empty Case
+  - id: 12
+    input: {}
+    text: "SELECT %missing_var% as col"
+    expected: "SELECT  as col"
+    passed: true
+
+  # Test ID 8: Standard Line Filters (#tag)
+  - id: 8
+    input: { "my_tag": true }
+    text: "SELECT * FROM table #my_tag"
+    expected: "SELECT * FROM table "
+    passed: true
+  - id: 8
+    input: { "my_tag": false }
+    text: "SELECT * FROM table #my_tag"
+    expected: ""
+    passed: true
+  - id: 8
+    input: { "my_tag": false }
+    text: "SELECT * FROM table #!my_tag"
+    expected: "SELECT * FROM table "
+    passed: true
+
+  # Test ID 7: Simple Extended Line Filters (--#key = 'val')
+  - id: 7
+    input: { "env": "prod" }
+    text: "DROP TABLE users; --#env = 'prod'"
+    expected: "DROP TABLE users; "
+    passed: true
+  - id: 7
+    input: { "env": "dev" }
+    text: "DROP TABLE users; --#env = 'prod'"
+    expected: ""
+    passed: true
+
+  # Test ID 6: JSONPath Line Filters (--#{ $.key })
+  - id: 6
+    input: { "config": { "enabled": true } }
+    text: "feature_flag = on --#{ $.config.enabled }"
+    expected: "feature_flag = on "
+    passed: true
+  - id: 6
+    input: { "config": { "enabled": false } }
+    text: "feature_flag = on --#{ $.config.enabled }"
+    expected: ""
+    passed: true
+
+  # Test ID 9: Legacy Postgres Filter ($1->'key')
+  - id: 9
+    input: { "type": "admin" }
+    text: "GRANT ALL; $1->'type'"
+    expected: "GRANT ALL; "
+    passed: true
+  # Note: Assuming legacy filter checks for truthiness/existence of key if no value specified in regex
+
+  # Test ID 10: Nested Line Filter ($1 #> '{path}' = 'val')
+  - id: 10
+    input: { "settings": { "theme": "dark" } }
+    text: "color: black; $1 #> '{settings,theme}' = 'dark'"
+    expected: "color: black; "
+    passed: true
+  - id: 10
+    input: { "settings": { "theme": "light" } }
+    text: "color: black; $1 #> '{settings,theme}' = 'dark'"
+    expected: ""
+    passed: true
+
+  # Test ID 1 (Block Start) & ID 3 (Block End) - Standard
+  - id: 1
+    input: { "show_section": true }
+    text: |
+      Before
+      --<show_section
+      Inside Block
+      -->
+      After
+    expected: |
+      Before
+      Inside Block
+      After
+    passed: true
+  - id: 1
+    input: { "show_section": false }
+    text: |
+      Before
+      --<show_section
+      Inside Block
+      -->
+      After
+    expected: |
+      Before
+      After
+    passed: true
+
+  # Test ID 1 (Block Start) - Negated (!tag)
+  - id: 1
+    input: { "hide_section": false }
+    text: |
+      --<!hide_section
+      Visible
+      -->
+    expected: |
+      Visible
+    passed: true
+
+  # Test ID 2: JSONPath Block (--<{ $.key } )
+  - id: 2
+    input: { "features": { "beta": true } }
+    text: |
+      --<{ $.features.beta }
+      Beta Feature
+      -->
+    expected: |
+      Beta Feature
+    passed: true
+  - id: 2
+    input: { "features": { "beta": false } }
+    text: |
+      --<{ $.features.beta }
+      Beta Feature
+      -->
+    expected: |
+    passed: true
+
+  # Test ID 5: Simple Extended Block (--< #key = 'val' >)
+  - id: 5
+    input: { "env": "prod" }
+    text: |
+      --< #env = 'prod' >
+      Production Config
+      -->
+    expected: |
+      Production Config
+    passed: true
+  - id: 5
+    input: { "env": "test" }
+    text: |
+      --< #env = 'prod' >
+      Production Config
+      -->
+    expected: |
+    passed: true
+
+  # Test ID 4: Nested Block ($1 #> '{key}' = 'val')
+  - id: 4
+    input: { "user": { "role": "admin" } }
+    text: |
+      --< $1 #> '{user,role}' = 'admin' >
+      Admin Selection
+      -->
+    expected: |
+      Admin Selection
+    passed: true
+  - id: 4
+    input: { "user": { "role": "guest" } }
+    text: |
+      --< $1 #> '{user,role}' = 'admin' >
+      Admin Selection
+      -->
+    expected: |
+    passed: true

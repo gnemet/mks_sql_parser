@@ -94,24 +94,26 @@ type TestCase struct {
 	Passed   bool                   `mapstructure:"passed" json:"passed"`
 }
 
-func LoadTests() []TestCase {
-	// Re-read config in case it changed or wasn't loaded (though usually LoadPatterns is called first)
-	// For safety, we can rely on init or just ensure viper has read it.
-	// Assuming LoadPatterns or init has set up viper paths.
-	// If independent, we might need to re-add paths, but let's assume viper is singleton and configured.
-	// However, to be safe for a test runner that might only call LoadTests:
-	viper.SetConfigName("config")
+func LoadTests(configBytes []byte) []TestCase {
+	viper.Reset()
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("../..")
-	viper.AddConfigPath("..")
-	// Also add module root if running from pkg/config
-	viper.AddConfigPath("../../..")
 
-	if err := viper.ReadInConfig(); err != nil {
-		// If it fails, maybe it's already loaded? Or file missing.
-		// For tests, we want to know if it fails.
-		fmt.Printf("Error reading config for tests: %v\n", err)
+	if configBytes != nil {
+		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
+			fmt.Printf("Error reading test config bytes: %v\n", err)
+			return nil
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("../..")
+		viper.AddConfigPath("..")
+		// Also add module root if running from pkg/config
+		viper.AddConfigPath("../../..")
+
+		if err := viper.ReadInConfig(); err != nil {
+			fmt.Printf("Error reading config for tests: %v\n", err)
+		}
 	}
 
 	var tests []TestCase

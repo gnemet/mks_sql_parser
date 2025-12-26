@@ -62,13 +62,17 @@ func handleProcess(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleTests(w http.ResponseWriter, r *http.Request) {
-	tests := config.LoadTests()
+	tests := config.LoadTests(nil)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tests)
 }
 
 func handlePatterns(w http.ResponseWriter, r *http.Request) {
-	patterns := config.LoadConfigs()
+	patterns, err := config.LoadConfigs(nil)
+	if err != nil {
+		http.Error(w, "Failed to load patterns", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(patterns)
 }

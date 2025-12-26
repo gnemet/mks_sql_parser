@@ -11,7 +11,7 @@ import (
 )
 
 func TestYamlConfigProcessing(t *testing.T) {
-	tests := config.LoadTests()
+	tests := config.LoadTests(nil)
 	if len(tests) == 0 {
 		t.Fatalf("No tests found in config.yaml")
 	}

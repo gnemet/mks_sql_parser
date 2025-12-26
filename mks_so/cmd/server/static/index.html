@@ -76,7 +76,29 @@
         </div>
     </div>
 
+    <script src="wasm_exec.js"></script>
     <script>
+        // Use Wasm if not running on localhost:8080 (or if explicitly enabled, but for GitHub Pages we assume Wasm)
+        // Or better: try to fetch /process, if fails, use Wasm. 
+        // Actually, for GitHub Pages migration, we can just default to Wasm if the file exists or just always try to load it.
+        // Let's implement a Wasm loader.
+
+        const go = new Go();
+        let wasmReady = false;
+
+        // Try to load Wasm
+        WebAssembly.instantiateStreaming(fetch("mks.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+            console.log("Wasm loaded");
+            wasmReady = true;
+            // Provide data from Wasm to frontend
+            initializeDataFromWasm();
+        }).catch((err) => {
+            console.log("Wasm not loaded (maybe running on Go server):", err);
+            // Fallback to fetch API if Wasm fails (e.g. running on local server without wasm build)
+            initializeDataFromFetch();
+        });
+
         // Configure Marked
         marked.setOptions({
             highlight: function (code, lang) {
@@ -86,58 +108,92 @@
             langPrefix: 'hljs language-'
         });
 
-        // 1. Load Patterns and Tests on Start
-        document.addEventListener('DOMContentLoaded', () => {
+        function initializeDataFromWasm() {
+            // Wasm functions: getPatterns(), getTests() return JSON strings
+            if (typeof getPatterns !== 'function') {
+                setTimeout(initializeDataFromWasm, 100);
+                return;
+            }
+
+            try {
+                const patterns = JSON.parse(getPatterns());
+                const tests = JSON.parse(getTests());
+                setupUI(tests, patterns);
+            } catch (e) {
+                console.error("Error loading data from Wasm:", e);
+            }
+        }
+
+        function initializeDataFromFetch() {
             Promise.all([
                 fetch('/tests').then(r => r.json()),
                 fetch('/patterns').then(r => r.json())
             ]).then(([tests, patterns]) => {
-                const select = document.getElementById('test-chooser');
-                window.tests = tests; // Store globally
-                window.patterns = patterns; // Store globally
+                setupUI(tests, patterns);
+            }).catch(e => console.error("Fetch failed:", e));
+        }
 
-                // Create Pattern Lookup Map
-                const patternMap = {};
-                patterns.forEach(p => {
-                    patternMap[p.id] = p.description;
-                });
+        function setupUI(tests, patterns) {
+            const select = document.getElementById('test-chooser');
+            window.tests = tests; // Store globally
+            window.patterns = patterns; // Store globally
 
-                // Sort tests by ID ascending
-                tests.sort((a, b) => a.id - b.id);
-
-                tests.forEach((test, index) => {
-                    const opt = document.createElement('option');
-                    opt.value = index; // Use index to guarantee uniqueness (after sort)
-
-                    let desc = "Unknown Pattern";
-                    if (patternMap[test.id]) {
-                        desc = patternMap[test.id];
-                        // Truncate if too long (increased length)
-                        if (desc.length > 120) desc = desc.substring(0, 117) + "...";
-                    }
-
-                    opt.textContent = `Test ${test.id} - ${desc}`;
-                    select.appendChild(opt);
-                });
+            // Create Pattern Lookup Map
+            const patternMap = {};
+            patterns.forEach(p => {
+                patternMap[p.id] = p.description;
             });
 
-            // Load Doc
-            fetch('/doc')
-                .then(r => r.text())
-                .then(text => {
-                    // Parse Markdown
-                    const html = marked.parse(text);
-                    const docContent = document.getElementById('doc-content');
-                    docContent.innerHTML = html;
+            // Sort tests by ID ascending
+            tests.sort((a, b) => a.id - b.id);
 
-                    // Reset simplified styles if any
-                    docContent.style.whiteSpace = 'normal';
-                    docContent.style.fontFamily = 'inherit';
-                });
+            // Clear options first
+            select.innerHTML = '<option value="">Select a Test Case...</option>';
 
-            // Initial Theme Check
-            updateHighlightTheme();
-        });
+            tests.forEach((test, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+
+                let desc = "Unknown Pattern";
+                if (patternMap[test.id]) {
+                    desc = patternMap[test.id];
+                    if (desc.length > 120) desc = desc.substring(0, 117) + "...";
+                }
+
+                opt.textContent = `Test ${test.id} - ${desc}`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Load Doc
+        // If on GitHub Pages, we might need to fetch doc/reference_guide.md relative to current URL
+        // Server: /doc returns content.
+        // GitHub: doc/reference_guide.md
+        const docUrl = wasmReady || window.location.pathname.includes("index.html") || window.location.hostname.includes("github.io")
+            ? "doc/reference_guide.md" // Adjust path if needed
+            : "/doc";
+
+        // We'll try /doc first, if 404, try doc/reference_guide.md? 
+        // Actually, let's just try fetching one then the other or depend on mode.
+        // Simple heuristic:
+        fetch(docUrl).then(r => {
+            if (!r.ok) return fetch("doc/reference_guide.md");
+            return r;
+        })
+            .then(r => r.text())
+            .then(text => {
+                const html = marked.parse(text);
+                const docContent = document.getElementById('doc-content');
+                docContent.innerHTML = html;
+                docContent.style.whiteSpace = 'normal';
+                docContent.style.fontFamily = 'inherit';
+            });
+
+
+        // Initial Theme Check
+        updateHighlightTheme();
+
+        // document.addEventListener('DOMContentLoaded', () => { ... }); // Removed, we call init above
 
         function getTestDescription(test) {
             return `Test Case ${test.id}`;
@@ -161,23 +217,36 @@
             outputDiv.textContent = "Processing...";
             outputDiv.className = "output-area";
 
-            try {
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sql, input })
-                });
-
-                const data = await response.json();
-                if (data.error) {
-                    outputDiv.textContent = "Error: " + data.error;
+            if (wasmReady && typeof processSql === 'function') {
+                try {
+                    // Wasm execution
+                    // processSql returns string result directly
+                    const result = processSql(sql, input);
+                    outputDiv.textContent = result;
+                } catch (e) {
+                    outputDiv.textContent = "Wasm Error: " + e;
                     outputDiv.classList.add("error-text");
-                } else {
-                    outputDiv.textContent = data.result;
                 }
-            } catch (e) {
-                outputDiv.textContent = "Network Error: " + e.message;
-                outputDiv.classList.add("error-text");
+            } else {
+                // Server fallback
+                try {
+                    const response = await fetch('/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sql, input })
+                    });
+
+                    const data = await response.json();
+                    if (data.error) {
+                        outputDiv.textContent = "Error: " + data.error;
+                        outputDiv.classList.add("error-text");
+                    } else {
+                        outputDiv.textContent = data.result;
+                    }
+                } catch (e) {
+                    outputDiv.textContent = "Network Error: " + e.message;
+                    outputDiv.classList.add("error-text");
+                }
             }
         }
 
