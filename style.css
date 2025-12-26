@@ -276,10 +276,21 @@ body.dark-mode .gutter:hover {
     opacity: 0.7;
 }
 
-.icon-btn:hover {
+.icon-btn:hover,
+.icon-btn.active {
     background-color: rgba(0, 0, 0, 0.1);
     color: var(--accent-color);
     opacity: 1;
+}
+
+.icon-btn.active {
+    border: 1px solid var(--border-color);
+    /* Subtle border for active state */
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .icon-btn.active {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 body.dark-mode .icon-btn:hover {
