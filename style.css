@@ -86,22 +86,166 @@ header {
     color: var(--accent-color);
 }
 
+/* Main Container: Flex Row */
 .container {
     flex: 1;
     display: flex;
+    flex-direction: row;
+    gap: 0;
+    /* Gutters handle spacing */
     padding: 1rem;
-    gap: 1rem;
+    min-height: 0;
     overflow: hidden;
 }
 
+/* Left Column: Flex Col */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 50%;
+    /* Initial width */
+    min-width: 200px;
+    min-height: 0;
+}
+
+/* Panes */
 .editor-pane {
-    flex: 1;
     display: flex;
     flex-direction: column;
     background: var(--pane-bg);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    /* By default custom size, logic will set flex-basis or height */
+}
+
+/* Remove Grid Specifics */
+/* Grid Specifics Removed */
+
+.sql-pane {
+    flex: 0 0 50%;
+    /* Initial height */
+}
+
+.result-pane {
+    flex: 1;
+    /* Fills remaining width */
+    margin-left: 0;
+    /* Gutter handles spacing */
+}
+
+/* Splitters (Gutters) */
+.gutter {
+    background-color: var(--bg-color);
+    position: relative;
+    z-index: 10;
+    flex: 0 0 auto;
+}
+
+.gutter-horizontal {
+    height: 10px;
+    cursor: row-resize;
+    width: 100%;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gutter-horizontal::after {
+    content: "";
+    width: 30px;
+    height: 4px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+}
+
+.gutter-vertical {
+    width: 10px;
+    cursor: col-resize;
+    height: 100%;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gutter-vertical::after {
+    content: "";
+    height: 30px;
+    width: 4px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+}
+
+.gutter:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.gutter-horizontal:hover {
+    border-top-color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.gutter-vertical:hover {
+    border-left-color: var(--accent-color);
+    border-right-color: var(--accent-color);
+}
+
+body.dark-mode .gutter:hover {
+    background-color: rgba(77, 163, 255, 0.1);
+}
+
+/* Collapsed State */
+.editor-pane.collapsed {
+    flex: 0 0 auto !important;
+    /* Don't grow/shrink, autosize to content */
+    height: auto !important;
+    /* Height determined by header */
+    min-height: 0 !important;
+    overflow: visible;
+    /* Show border radius properly */
+}
+
+.editor-pane.collapsed textarea,
+.editor-pane.collapsed .output-area,
+.editor-pane.collapsed .pane-actions {
+    display: none !important;
+}
+
+.editor-pane.collapsed .pane-header {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .left-column {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .gutter {
+        display: none;
+    }
+
+    /* Hide gutters on mobile */
+    .editor-pane {
+        min-height: 300px;
+        margin-bottom: 1rem;
+    }
 }
 
 .pane-header {
