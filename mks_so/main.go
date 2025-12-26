@@ -18,7 +18,7 @@ func mksSql(cSql *C.char, cInput *C.char) *C.char {
 	sqlText := C.GoString(cSql)
 	inputJSON := C.GoString(cInput)
 
-	result := processor.ProcessSql(sqlText, inputJSON)
+	result := processor.ProcessSql(sqlText, inputJSON, false)
 
 	return C.CString(result)
 }

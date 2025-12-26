@@ -104,6 +104,10 @@
                     <i class="fas fa-terminal"></i> Result
                 </label>
                 <div class="pane-actions">
+                    <button class="icon-btn" id="minify-btn" onclick="toggleMinify()"
+                        title="Toggle Minified Output (Strip Comments)">
+                        <i class="fas fa-compress-arrows-alt"></i>
+                    </button>
                     <button class="icon-btn" onclick="downloadResult()" title="Save Result">
                         <i class="fas fa-download"></i>
                     </button>
@@ -239,11 +243,12 @@
                 fetch('/version').then(r => r.json())
             ]).then(([tests, patterns, verInfo]) => {
                 if (verInfo && verInfo.version) {
-                    let vText = verInfo.version;
+                    const verEl = document.getElementById('app-version');
+                    verEl.textContent = "Version: " + verInfo.version;
                     if (verInfo.last_build) {
-                        vText += " | Built: " + verInfo.last_build;
+                        verEl.title = "Built: " + verInfo.last_build;
+                        verEl.style.cursor = "help";
                     }
-                    document.getElementById('app-version').textContent = vText;
                 } else {
                     document.getElementById('app-version').textContent = "1.0.0 (Server)";
                 }
@@ -340,6 +345,7 @@
             const sql = document.getElementById('sql-text').value;
             const input = document.getElementById('json-input').value;
             const outputDiv = document.getElementById('result-output');
+            const minify = document.getElementById('minify-btn').classList.contains('active');
 
             outputDiv.textContent = "Processing...";
             outputDiv.className = "output-area";
@@ -348,7 +354,7 @@
                 try {
                     // Wasm execution
                     // processSql returns string result directly
-                    const result = processSql(sql, input);
+                    const result = processSql(sql, input, minify);
                     outputDiv.textContent = result;
                 } catch (e) {
                     outputDiv.textContent = "Wasm Error: " + e;
@@ -360,7 +366,7 @@
                     const response = await fetch('/process', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sql, input })
+                        body: JSON.stringify({ sql, input, minify })
                     });
 
                     const data = await response.json();
@@ -375,6 +381,11 @@
                     outputDiv.classList.add("error-text");
                 }
             }
+        }
+
+        function toggleMinify() {
+            const btn = document.getElementById('minify-btn');
+            btn.classList.toggle('active');
         }
 
         // Initial Theme Check

@@ -29,6 +29,6 @@ func main() {
 	}
 
 	// Config is loaded lazily by ProcessSql
-	result := processor.ProcessSql(string(sqlBytes), string(jsonBytes))
+	result := processor.ProcessSql(string(sqlBytes), string(jsonBytes), false)
 	fmt.Println(result)
 }

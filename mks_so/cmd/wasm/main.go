@@ -59,8 +59,12 @@ func processSql(this js.Value, args []js.Value) interface{} {
 	}
 	sqlText := args[0].String()
 	jsonInput := args[1].String()
+	minify := false
+	if len(args) > 2 {
+		minify = args[2].Bool()
+	}
 
-	result := processor.ProcessSql(sqlText, jsonInput)
+	result := processor.ProcessSql(sqlText, jsonInput, minify)
 	return result
 }
 

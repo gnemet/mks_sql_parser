@@ -25,7 +25,7 @@ func TestYamlConfigProcessing(t *testing.T) {
 
 			inputJSON := string(inputBytes)
 			// ProcessSql expects the SQL text and the JSON input
-			result := processor.ProcessSql(tt.Text, inputJSON)
+			result := processor.ProcessSql(tt.Text, inputJSON, false)
 
 			// Normalize newlines for comparison (optional but good for multi-line)
 			// But let's try exact match first as defined in YAML

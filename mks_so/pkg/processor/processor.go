@@ -17,7 +17,7 @@ func SetPatterns(patterns []config.CompiledPattern) {
 	compiledPatterns = patterns
 }
 
-func ProcessSql(sqlText string, jsonInput string) string {
+func ProcessSql(sqlText string, jsonInput string, forceMinify bool) string {
 	if compiledPatterns == nil {
 		compiledPatterns = config.LoadPatterns()
 	}
@@ -53,22 +53,24 @@ func ProcessSql(sqlText string, jsonInput string) string {
 		if debug {
 			sb.WriteString(fmt.Sprintf("===== %d\n", i))
 		}
-		sb.WriteString(processSingle(sqlText, inputMap, debug))
+		sb.WriteString(processSingle(sqlText, inputMap, debug, forceMinify))
 	}
 	return sb.String()
 }
 
-func processSingle(sqlText string, inputMap map[string]interface{}, debug bool) string {
+func processSingle(sqlText string, inputMap map[string]interface{}, debug bool, forceMinify bool) string {
 	var result strings.Builder
 	scanner := bufio.NewScanner(strings.NewReader(sqlText))
 
 	inBlock := false
 	blockKeep := true
-	minify := false
+	minify := forceMinify
 
-	if mVal, ok := inputMap["minify"]; ok {
-		if mBool, isBool := mVal.(bool); isBool && mBool {
-			minify = true
+	if !minify {
+		if mVal, ok := inputMap["minify"]; ok {
+			if mBool, isBool := mVal.(bool); isBool && mBool {
+				minify = true
+			}
 		}
 	}
 

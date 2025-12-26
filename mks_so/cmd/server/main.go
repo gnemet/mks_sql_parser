@@ -13,6 +13,7 @@ import (
 type ProcessRequest struct {
 	SqlText string `json:"sql"`
 	Input   string `json:"input"`
+	Minify  bool   `json:"minify"`
 }
 
 type ProcessResponse struct {
@@ -58,7 +59,7 @@ func handleProcess(w http.ResponseWriter, r *http.Request) {
 	// But let's let the processor handle it or just pass it through.
 	// Actually, req.Input is a string.
 
-	result := processor.ProcessSql(req.SqlText, req.Input)
+	result := processor.ProcessSql(req.SqlText, req.Input, req.Minify)
 	jsonResponse(w, ProcessResponse{Result: result}, http.StatusOK)
 }
 
