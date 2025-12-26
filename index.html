@@ -236,9 +236,17 @@
             Promise.all([
                 fetch('/tests').then(r => r.json()),
                 fetch('/patterns').then(r => r.json()),
-                // Server might not expose version? Let's just hardcode fallback or ignore.
-            ]).then(([tests, patterns]) => {
-                document.getElementById('app-version').textContent = "1.0.0 (Server)";
+                fetch('/version').then(r => r.json())
+            ]).then(([tests, patterns, verInfo]) => {
+                if (verInfo && verInfo.version) {
+                    let vText = verInfo.version;
+                    if (verInfo.last_build) {
+                        vText += " | Built: " + verInfo.last_build;
+                    }
+                    document.getElementById('app-version').textContent = vText;
+                } else {
+                    document.getElementById('app-version').textContent = "1.0.0 (Server)";
+                }
                 setupUI(tests, patterns);
             }).catch(e => console.error("Fetch failed:", e));
         }
