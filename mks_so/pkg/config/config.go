@@ -87,11 +87,12 @@ func LoadConfigs(configBytes []byte) ([]PatternConfig, error) {
 }
 
 type TestCase struct {
-	ID       int                    `mapstructure:"id" json:"id"`
-	Input    map[string]interface{} `mapstructure:"input" json:"input"`
-	Text     string                 `mapstructure:"text" json:"text"`
-	Expected string                 `mapstructure:"expected" json:"expected"`
-	Passed   bool                   `mapstructure:"passed" json:"passed"`
+	ID          int                    `mapstructure:"id" json:"id"`
+	Description string                 `mapstructure:"description" json:"description"`
+	Input       map[string]interface{} `mapstructure:"input" json:"input"`
+	Text        string                 `mapstructure:"text" json:"text"`
+	Expected    string                 `mapstructure:"expected" json:"expected"`
+	Passed      bool                   `mapstructure:"passed" json:"passed"`
 }
 
 func LoadTests(configBytes []byte) []TestCase {
