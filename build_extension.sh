@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 CONFIG_FILE="mks_so/config.yaml"
 CONTROL_FILE="pg_extension/mks_parser.control"
