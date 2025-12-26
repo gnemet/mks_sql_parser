@@ -36,16 +36,25 @@ func ProcessSql(sqlText string, jsonInput string) string {
 
 	var sb strings.Builder
 	for i, inputMap := range inputList {
+		debug := false
+		if dVal, ok := inputMap["debug"]; ok {
+			if dBool, isBool := dVal.(bool); isBool && dBool {
+				debug = true
+			}
+		}
+
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString(fmt.Sprintf("===== %d\n", i))
-		sb.WriteString(processSingle(sqlText, inputMap))
+		if debug {
+			sb.WriteString(fmt.Sprintf("===== %d\n", i))
+		}
+		sb.WriteString(processSingle(sqlText, inputMap, debug))
 	}
 	return sb.String()
 }
 
-func processSingle(sqlText string, inputMap map[string]interface{}) string {
+func processSingle(sqlText string, inputMap map[string]interface{}, debug bool) string {
 	var result strings.Builder
 	scanner := bufio.NewScanner(strings.NewReader(sqlText))
 
@@ -66,58 +75,15 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 
 		// 1. Block Logic
 		for _, cp := range compiledPatterns {
-			if cp.Action == "block_start" {
-				matches := cp.Re.FindStringSubmatch(line)
-				if len(matches) > 0 {
-					negate := matches[1] == "!"
-					key := matches[2]
-					valStr := matches[3]
-
-					cond := evaluator.CheckCondition(inputMap, key, valStr, negate)
-					inBlock = true
-					blockKeep = cond
-				}
-			} else if cp.Action == "block_start_jsonpath" {
-				matches := cp.Re.FindStringSubmatch(line)
-				if len(matches) > 0 {
-					exprStr := matches[1]
-					cond := evaluator.EvaluateJsonPath(exprStr, inputMap)
-					inBlock = true
-					blockKeep = cond
-				}
-			} else if cp.Action == "block_start_nested" {
-				matches := cp.Re.FindStringSubmatch(line)
-				if len(matches) > 0 {
-					pathStr := matches[1]
-					valStr := matches[2]
-
-					exists, val := evaluator.GetNestedValue(inputMap, pathStr)
-					conditionMet := exists
-					if valStr != "" {
-						if !exists {
-							conditionMet = false
-						} else {
-							conditionMet = (fmt.Sprintf("%v", val) == valStr)
-						}
-					}
-					inBlock = true
-					blockKeep = conditionMet
-				}
-			} else if cp.Action == "block_start_simple_extended" {
-				matches := cp.Re.FindStringSubmatch(line)
-				if len(matches) > 0 {
-					key := matches[1]
-					op := matches[2]
-					valStr := matches[3]
-
-					cond := evaluator.CheckConditionOp(inputMap, key, valStr, op)
-					inBlock = true
-					blockKeep = cond
-				}
-			} else if cp.Action == "block_end" {
-				if cp.Re.MatchString(line) {
+			matched, keep, newLine := handleBlockLogic(line, inputMap, cp)
+			if matched {
+				line = newLine
+				if cp.Action == "block_end" {
 					inBlock = false
 					blockKeep = true
+				} else {
+					inBlock = true
+					blockKeep = keep
 				}
 			}
 		}
@@ -128,119 +94,18 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 
 		// 2. Line Logic
 		if !lineDeleted {
-			shouldDeleteLine := false
-
 			for _, cp := range compiledPatterns {
-				if shouldDeleteLine {
+				shouldDelete, newLine := handleLineLogic(line, inputMap, cp)
+				line = newLine
+				if shouldDelete {
+					lineDeleted = true
 					break
 				}
-				switch cp.Action {
-				case "line_filter_jsonpath":
-					matches := cp.Re.FindAllStringSubmatch(line, -1)
-					for _, m := range matches {
-						exprStr := m[1]
-						if !evaluator.EvaluateJsonPath(exprStr, inputMap) {
-							shouldDeleteLine = true
-							break
-						}
-					}
-				case "line_filter_simple_extended":
-					matches := cp.Re.FindAllStringSubmatch(line, -1)
-					for _, m := range matches {
-						key := m[1]
-						op := m[2]
-						valStr := m[3]
-						if !evaluator.CheckConditionOp(inputMap, key, valStr, op) {
-							shouldDeleteLine = true
-							break
-						}
-					}
-				case "line_filter":
-					matches := cp.Re.FindAllStringSubmatch(line, -1)
-					for _, m := range matches {
-						negateKey := m[1] == "!"
-						key := m[2]
-						negateVal := m[3] == "!"
-						val := m[4]
-
-						var cond bool
-						if val != "" {
-							cond = evaluator.CheckCondition(inputMap, key, val, negateVal)
-						} else {
-							cond = evaluator.CheckCondition(inputMap, key, "", negateKey)
-						}
-
-						if !cond {
-							shouldDeleteLine = true
-							break
-						}
-					}
-				case "line_filter_legacy":
-					matches := cp.Re.FindAllStringSubmatch(line, -1)
-					for _, m := range matches {
-						key := m[1]
-						if _, ok := inputMap[key]; !ok {
-							shouldDeleteLine = true
-							break
-						}
-					}
-				case "line_filter_nested":
-					matches := cp.Re.FindAllStringSubmatch(line, -1)
-					for _, m := range matches {
-						pathStr := m[1]
-						valStr := ""
-						if len(m) > 2 {
-							valStr = m[2]
-						}
-
-						exists, val := evaluator.GetNestedValue(inputMap, pathStr)
-						conditionMet := exists
-						if valStr != "" {
-							if !exists {
-								conditionMet = false
-							} else {
-								conditionMet = (fmt.Sprintf("%v", val) == valStr)
-							}
-						}
-
-						if !conditionMet {
-							shouldDeleteLine = true
-							break
-						}
-					}
-				case "replace_delete":
-					matched := false
-					line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
-						sub := cp.Re.FindStringSubmatch(matchStr)
-						key := sub[1]
-						if val, ok := inputMap[key]; ok {
-							matched = true
-							return fmt.Sprintf("%v", val)
-						} else {
-							shouldDeleteLine = true
-							return matchStr
-						}
-					})
-					_ = matched
-				case "replace_empty":
-					line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
-						sub := cp.Re.FindStringSubmatch(matchStr)
-						key := sub[1]
-						if val, ok := inputMap[key]; ok {
-							return fmt.Sprintf("%v", val)
-						} else {
-							return ""
-						}
-					})
-				}
-			}
-			if shouldDeleteLine {
-				lineDeleted = true
 			}
 		}
 
 		if lineDeleted {
-			if minify {
+			if minify || !debug {
 				continue
 			}
 			line = fmt.Sprintf("-- deleted: %s", line)
@@ -253,8 +118,12 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 				if line == "" {
 					continue
 				}
-			} else {
+			} else if debug {
 				line = line + " -- kept"
+			} else {
+				if strings.TrimSpace(line) == "" {
+					continue
+				}
 			}
 		}
 
@@ -265,4 +134,144 @@ func processSingle(sqlText string, inputMap map[string]interface{}) string {
 		first = false
 	}
 	return result.String()
+}
+
+func handleBlockLogic(line string, inputMap map[string]interface{}, cp config.CompiledPattern) (bool, bool, string) {
+	switch cp.Action {
+	case "block_start":
+		matches := cp.Re.FindStringSubmatch(line)
+		if len(matches) > 0 {
+			negate := matches[1] == "!"
+			key := matches[2]
+			valStr := matches[3]
+			return true, evaluator.CheckCondition(inputMap, key, valStr, negate), cp.Re.ReplaceAllString(line, "")
+		}
+	case "block_start_jsonpath":
+		matches := cp.Re.FindStringSubmatch(line)
+		if len(matches) > 0 {
+			exprStr := matches[1]
+			return true, evaluator.EvaluateJsonPath(exprStr, inputMap), cp.Re.ReplaceAllString(line, "")
+		}
+	case "block_start_nested":
+		matches := cp.Re.FindStringSubmatch(line)
+		if len(matches) > 0 {
+			pathStr := matches[1]
+			valStr := matches[2]
+			exists, val := evaluator.GetNestedValue(inputMap, pathStr)
+			conditionMet := exists
+			if valStr != "" {
+				if !exists {
+					conditionMet = false
+				} else {
+					conditionMet = (fmt.Sprintf("%v", val) == valStr)
+				}
+			}
+			return true, conditionMet, cp.Re.ReplaceAllString(line, "")
+		}
+	case "block_start_simple_extended":
+		matches := cp.Re.FindStringSubmatch(line)
+		if len(matches) > 0 {
+			key := matches[1]
+			op := matches[2]
+			valStr := matches[3]
+			return true, evaluator.CheckConditionOp(inputMap, key, valStr, op), cp.Re.ReplaceAllString(line, "")
+		}
+	case "block_end":
+		if cp.Re.MatchString(line) {
+			return true, true, cp.Re.ReplaceAllString(line, "")
+		}
+	}
+	return false, false, line
+}
+
+func handleLineLogic(line string, inputMap map[string]interface{}, cp config.CompiledPattern) (bool, string) {
+	shouldDelete := false
+	switch cp.Action {
+	case "line_filter_jsonpath":
+		matches := cp.Re.FindAllStringSubmatch(line, -1)
+		for _, m := range matches {
+			if !evaluator.EvaluateJsonPath(m[1], inputMap) {
+				shouldDelete = true
+			}
+		}
+		line = cp.Re.ReplaceAllString(line, "")
+	case "line_filter_simple_extended":
+		matches := cp.Re.FindAllStringSubmatch(line, -1)
+		for _, m := range matches {
+			if !evaluator.CheckConditionOp(inputMap, m[1], m[3], m[2]) {
+				shouldDelete = true
+			}
+		}
+		line = cp.Re.ReplaceAllString(line, "")
+	case "line_filter":
+		matches := cp.Re.FindAllStringSubmatch(line, -1)
+		for _, m := range matches {
+			negateKey := m[1] == "!"
+			key := m[2]
+			negateVal := m[3] == "!"
+			val := m[4]
+			if val != "" {
+				if !evaluator.CheckCondition(inputMap, key, val, negateVal) {
+					shouldDelete = true
+				}
+			} else {
+				if !evaluator.CheckCondition(inputMap, key, "", negateKey) {
+					shouldDelete = true
+				}
+			}
+		}
+		line = cp.Re.ReplaceAllString(line, "")
+	case "line_filter_legacy":
+		matches := cp.Re.FindAllStringSubmatch(line, -1)
+		for _, m := range matches {
+			if _, ok := inputMap[m[1]]; !ok {
+				shouldDelete = true
+			}
+		}
+		line = cp.Re.ReplaceAllString(line, "")
+	case "line_filter_nested":
+		matches := cp.Re.FindAllStringSubmatch(line, -1)
+		for _, m := range matches {
+			pathStr := m[1]
+			valStr := ""
+			if len(m) > 2 {
+				valStr = m[2]
+			}
+			exists, val := evaluator.GetNestedValue(inputMap, pathStr)
+			conditionMet := exists
+			if valStr != "" {
+				if !exists {
+					conditionMet = false
+				} else {
+					conditionMet = (fmt.Sprintf("%v", val) == valStr)
+				}
+			}
+			if !conditionMet {
+				shouldDelete = true
+			}
+		}
+		line = cp.Re.ReplaceAllString(line, "")
+	case "replace_delete":
+		line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
+			sub := cp.Re.FindStringSubmatch(matchStr)
+			key := sub[1]
+			if val, ok := inputMap[key]; ok {
+				return fmt.Sprintf("%v", val)
+			} else {
+				shouldDelete = true
+				return matchStr
+			}
+		})
+	case "replace_empty":
+		line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
+			sub := cp.Re.FindStringSubmatch(matchStr)
+			key := sub[1]
+			if val, ok := inputMap[key]; ok {
+				return fmt.Sprintf("%v", val)
+			} else {
+				return ""
+			}
+		})
+	}
+	return shouldDelete, line
 }

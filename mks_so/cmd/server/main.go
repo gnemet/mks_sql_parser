@@ -1,0 +1,115 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+
+	"mks_sql/pkg/config"
+	"mks_sql/pkg/processor"
+)
+
+type ProcessRequest struct {
+	SqlText string `json:"sql"`
+	Input   string `json:"input"`
+}
+
+type ProcessResponse struct {
+	Result string `json:"result"`
+	Error  string `json:"error,omitempty"`
+}
+
+func main() {
+	// Serve static files
+	fs := http.FileServer(http.Dir("./cmd/server/static"))
+	http.Handle("/", fs)
+
+	// API Endpoints
+	http.HandleFunc("/process", handleProcess)
+	http.HandleFunc("/tests", handleTests)
+	http.HandleFunc("/patterns", handlePatterns)
+	http.HandleFunc("/doc", handleDoc)
+	http.HandleFunc("/parser_rules.md", handleParserRules)
+
+	port := "8080"
+	fmt.Printf("Server starting on http://localhost:%s\n", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		fmt.Printf("Server failed: %s\n", err)
+	}
+}
+
+func handleProcess(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ProcessRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, ProcessResponse{Error: "Invalid JSON input"}, http.StatusBadRequest)
+		return
+	}
+
+	// Basic validation of Input JSON to ensure it's valid JSON string
+	// The processor takes a JSON string, so we just pass it valid or not?
+	// The request 'Input' is a string that SHOULD be a JSON object literal.
+	// But let's let the processor handle it or just pass it through.
+	// Actually, req.Input is a string.
+
+	result := processor.ProcessSql(req.SqlText, req.Input)
+	jsonResponse(w, ProcessResponse{Result: result}, http.StatusOK)
+}
+
+func handleTests(w http.ResponseWriter, r *http.Request) {
+	tests := config.LoadTests()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tests)
+}
+
+func handlePatterns(w http.ResponseWriter, r *http.Request) {
+	patterns := config.LoadConfigs()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(patterns)
+}
+
+func handleDoc(w http.ResponseWriter, r *http.Request) {
+	// Read reference_guide.md
+	// Assuming running from project root
+	docPath := "doc/reference_guide.md"
+	content, err := os.ReadFile(docPath)
+	if err != nil {
+		// Try fallback location if running inside mks_so
+		docPath = "../doc/reference_guide.md"
+		content, err = os.ReadFile(docPath)
+		if err != nil {
+			http.Error(w, "Documentation not found", http.StatusNotFound)
+			return
+		}
+	}
+
+	// Just return raw markdown for now, frontend can handle or we just show text
+	w.Header().Set("Content-Type", "text/markdown")
+	w.Write(content)
+}
+
+func handleParserRules(w http.ResponseWriter, r *http.Request) {
+	docPath := "doc/parser_rules.md"
+	content, err := os.ReadFile(docPath)
+	if err != nil {
+		docPath = "../doc/parser_rules.md"
+		content, err = os.ReadFile(docPath)
+		if err != nil {
+			http.Error(w, "Parser rules not found", http.StatusNotFound)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "text/markdown")
+	w.Write(content)
+}
+
+func jsonResponse(w http.ResponseWriter, data interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}

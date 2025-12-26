@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MKS SQL Parser Tester</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js -->
+    <link rel="stylesheet" id="hljs-theme"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="light-mode">
+    <header>
+        <div class="header-left">
+            <h1><i class="fas fa-database"></i> MKS SQL Parser Tester</h1>
+        </div>
+        <div class="header-center">
+            <select id="test-chooser" name="testId" onchange="loadTest(this.value)">
+                <option value="">Select a Test Case...</option>
+                <!-- Options populated by JS -->
+            </select>
+        </div>
+        <div class="header-right">
+            <button id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button id="doc-toggle" onclick="toggleDoc()" title="Show Reference Guide">
+                <i class="fas fa-book"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="editor-pane">
+            <div class="pane-header">
+                <label><i class="fas fa-code"></i> SQL Text</label>
+            </div>
+            <textarea id="sql-text" name="sql" spellcheck="false" placeholder="Enter SQL here..."></textarea>
+        </div>
+
+        <div class="editor-pane">
+            <div class="pane-header">
+                <label><i class="fas fa-file-code"></i> Input JSON</label>
+            </div>
+            <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'></textarea>
+        </div>
+
+        <div class="editor-pane">
+            <div class="pane-header">
+                <label><i class="fas fa-terminal"></i> Result</label>
+                <button class="run-btn" onclick="runProcess()">
+                    <i class="fas fa-play"></i> Run
+                </button>
+            </div>
+            <div id="result-output" class="output-area"></div>
+        </div>
+    </main>
+
+    <div id="doc-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleDoc()">&times;</span>
+            <h2>Reference Guide</h2>
+            <div id="doc-content" class="markdown-body">
+                Loading documentation...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configure Marked
+        marked.setOptions({
+            highlight: function (code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-'
+        });
+
+        // 1. Load Patterns and Tests on Start
+        document.addEventListener('DOMContentLoaded', () => {
+            Promise.all([
+                fetch('/tests').then(r => r.json()),
+                fetch('/patterns').then(r => r.json())
+            ]).then(([tests, patterns]) => {
+                const select = document.getElementById('test-chooser');
+                window.tests = tests; // Store globally
+                window.patterns = patterns; // Store globally
+
+                // Create Pattern Lookup Map
+                const patternMap = {};
+                patterns.forEach(p => {
+                    patternMap[p.id] = p.description;
+                });
+
+                // Sort tests by ID ascending
+                tests.sort((a, b) => a.id - b.id);
+
+                tests.forEach((test, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index; // Use index to guarantee uniqueness (after sort)
+
+                    let desc = "Unknown Pattern";
+                    if (patternMap[test.id]) {
+                        desc = patternMap[test.id];
+                        // Truncate if too long (increased length)
+                        if (desc.length > 120) desc = desc.substring(0, 117) + "...";
+                    }
+
+                    opt.textContent = `Test ${test.id} - ${desc}`;
+                    select.appendChild(opt);
+                });
+            });
+
+            // Load Doc
+            fetch('/doc')
+                .then(r => r.text())
+                .then(text => {
+                    // Parse Markdown
+                    const html = marked.parse(text);
+                    const docContent = document.getElementById('doc-content');
+                    docContent.innerHTML = html;
+
+                    // Reset simplified styles if any
+                    docContent.style.whiteSpace = 'normal';
+                    docContent.style.fontFamily = 'inherit';
+                });
+
+            // Initial Theme Check
+            updateHighlightTheme();
+        });
+
+        function getTestDescription(test) {
+            return `Test Case ${test.id}`;
+        }
+
+        function loadTest(index) {
+            if (index === "" || index === null) return;
+            const test = window.tests[index];
+            if (test) {
+                document.getElementById('sql-text').value = test.text;
+                document.getElementById('json-input').value = JSON.stringify(test.input, null, 2);
+                document.getElementById('result-output').textContent = "";
+            }
+        }
+
+        async function runProcess() {
+            const sql = document.getElementById('sql-text').value;
+            const input = document.getElementById('json-input').value;
+            const outputDiv = document.getElementById('result-output');
+
+            outputDiv.textContent = "Processing...";
+            outputDiv.className = "output-area";
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sql, input })
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    outputDiv.textContent = "Error: " + data.error;
+                    outputDiv.classList.add("error-text");
+                } else {
+                    outputDiv.textContent = data.result;
+                }
+            } catch (e) {
+                outputDiv.textContent = "Network Error: " + e.message;
+                outputDiv.classList.add("error-text");
+            }
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('#theme-toggle i');
+            if (body.classList.contains('light-mode')) {
+                body.classList.replace('light-mode', 'dark-mode');
+                icon.classList.replace('fa-moon', 'fa-sun');
+            } else {
+                body.classList.replace('dark-mode', 'light-mode');
+                icon.classList.replace('fa-sun', 'fa-moon');
+            }
+            updateHighlightTheme();
+        }
+
+        function updateHighlightTheme() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const themeLink = document.getElementById('hljs-theme');
+            if (isDark) {
+                themeLink.href = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+            } else {
+                themeLink.href = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+            }
+        }
+
+        function toggleDoc() {
+            const modal = document.getElementById('doc-modal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+
+        window.onclick = function (event) {
+            const modal = document.getElementById('doc-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+
+</html>

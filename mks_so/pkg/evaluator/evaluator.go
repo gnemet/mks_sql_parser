@@ -22,6 +22,19 @@ func CheckConditionOp(inputMap map[string]interface{}, key string, valStr string
 
 	// Existence check only (if valStr empty)
 	if valStr == "" && (op == "=" || op == "!=") {
+		// If explicit boolean value in input, respect it
+		if b, ok := val.(bool); ok {
+			if op == "=" {
+				return b
+			}
+			return !b
+		} else if bPtr, ok := val.(*bool); ok && bPtr != nil {
+			if op == "=" {
+				return *bPtr
+			}
+			return !*bPtr
+		}
+
 		if op == "!=" {
 			return !exists
 		}
