@@ -30,6 +30,9 @@ echo "New Version: $NEW_VERSION"
 # Use a temporary file to ensure safe writing
 sed "s/version: \"$CURRENT_VERSION\"/version: \"$NEW_VERSION\"/" "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 
+# Sync config to WASM directory
+cp "$CONFIG_FILE" "mks_so/cmd/wasm/config.yaml"
+
 # 4. Update mks_parser.control
 sed "s/default_version = '.*'/default_version = '$NEW_VERSION'/" "$CONTROL_FILE" > "${CONTROL_FILE}.tmp" && mv "${CONTROL_FILE}.tmp" "$CONTROL_FILE"
 
