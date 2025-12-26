@@ -253,6 +253,35 @@
             }
         }
 
+        // Initial Theme Check
+        // Check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.replace('light-mode', 'dark-mode');
+            document.querySelector('#theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+        }
+        updateHighlightTheme();
+
+        // Listen for system changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            const body = document.body;
+            const icon = document.querySelector('#theme-toggle i');
+            // Only update if user hasn't toggled manually? 
+            // For simplicity, let system override or just sync.
+            // Let's just sync to system change.
+            if (event.matches) {
+                if (body.classList.contains('light-mode')) {
+                    body.classList.replace('light-mode', 'dark-mode');
+                    icon.classList.replace('fa-moon', 'fa-sun');
+                }
+            } else {
+                if (body.classList.contains('dark-mode')) {
+                    body.classList.replace('dark-mode', 'light-mode');
+                    icon.classList.replace('fa-sun', 'fa-moon');
+                }
+            }
+            updateHighlightTheme();
+        });
+
         function toggleTheme() {
             const body = document.body;
             const icon = document.querySelector('#theme-toggle i');
