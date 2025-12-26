@@ -41,19 +41,24 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 60px;
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .header-left h1 {
     margin: 0;
     font-size: 1.2rem;
     color: var(--accent-color);
+    white-space: nowrap;
 }
 
 .header-center {
     flex: 1;
     display: flex;
     justify-content: center;
+    min-width: 200px;
 }
 
 .header-center select {
@@ -63,7 +68,8 @@ header {
     background: var(--bg-color);
     color: var(--text-color);
     font-size: 1rem;
-    width: 300px;
+    width: 100%;
+    max-width: 400px;
 }
 
 .header-right button {

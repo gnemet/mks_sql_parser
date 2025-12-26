@@ -166,11 +166,14 @@
         }
 
         // Load Doc
-        // If on GitHub Pages, we might need to fetch doc/reference_guide.md relative to current URL
-        // Server: /doc returns content.
-        // GitHub: doc/reference_guide.md
-        const docUrl = wasmReady || window.location.pathname.includes("index.html") || window.location.hostname.includes("github.io")
-            ? "doc/reference_guide.md" // Adjust path if needed
+        // On GitHub Pages, we are likely at /mks_sql_parser/
+        // file is at /mks_sql_parser/doc/reference_guide.md if copied?
+        // Wait, the deploy action only copies 'mks_so/cmd/server/static'.
+        // Does 'static' contain 'doc'? No.
+        // We need to copy 'doc' folder to 'static' in the build script!
+
+        const docUrl = wasmReady || window.location.hostname.includes("github.io")
+            ? "reference_guide.md" // We will put it in root of static
             : "/doc";
 
         // We'll try /doc first, if 404, try doc/reference_guide.md? 
