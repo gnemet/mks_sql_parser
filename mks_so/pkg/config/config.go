@@ -122,6 +122,9 @@ func LoadTests(configBytes []byte) []TestCase {
 	if err != nil {
 		fmt.Printf("Error unmarshalling tests: %v\n", err)
 	}
+	return tests
+}
+
 func LoadVersion(configBytes []byte) string {
 	viper.Reset()
 	viper.SetConfigType("yaml")
