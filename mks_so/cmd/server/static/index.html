@@ -43,48 +43,66 @@
         </div>
     </header>
 
-    <main class="container">
-        <div class="editor-pane">
-            <div class="pane-header">
-                <label><i class="fas fa-code"></i> SQL Text</label>
-                <div class="pane-actions">
-                    <input type="file" id="upload-sql" accept=".sql,.txt" style="display:none"
-                        onchange="loadFile(this, 'sql-text')">
-                    <button class="icon-btn" onclick="document.getElementById('upload-sql').click()"
-                        title="Upload File">
-                        <i class="fas fa-upload"></i>
-                    </button>
-                    <button class="icon-btn" onclick="copyToClipboard('sql-text')" title="Copy to Clipboard">
-                        <i class="fas fa-copy"></i>
-                    </button>
+    <main class="container" id="main-container">
+        <div class="left-column" id="left-col">
+            <div class="editor-pane sql-pane" id="pane-sql">
+                <div class="pane-header">
+                    <label>
+                        <button class="icon-btn fold-btn" onclick="toggleFold('pane-sql')" title="Minimize"><i
+                                class="fas fa-minus"></i></button>
+                        <i class="fas fa-code"></i> SQL Text
+                    </label>
+                    <div class="pane-actions">
+                        <input type="file" id="upload-sql" accept=".sql,.txt" style="display:none"
+                            onchange="loadFile(this, 'sql-text')">
+                        <button class="icon-btn" onclick="document.getElementById('upload-sql').click()"
+                            title="Upload File">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button class="icon-btn" onclick="copyToClipboard('sql-text')" title="Copy to Clipboard">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
                 </div>
+                <textarea id="sql-text" name="sql" spellcheck="false"
+                    placeholder="Enter SQL here or drag & drop a file..."></textarea>
             </div>
-            <textarea id="sql-text" name="sql" spellcheck="false"
-                placeholder="Enter SQL here or drag & drop a file..."></textarea>
+
+            <div class="gutter gutter-horizontal" id="gutter-h"></div>
+
+            <div class="editor-pane json-pane" id="pane-json">
+                <div class="pane-header">
+                    <label>
+                        <button class="icon-btn fold-btn" onclick="toggleFold('pane-json')" title="Minimize"><i
+                                class="fas fa-minus"></i></button>
+                        <i class="fas fa-file-code"></i> Input JSON
+                    </label>
+                    <div class="pane-actions">
+                        <input type="file" id="upload-json" accept=".json,.txt" style="display:none"
+                            onchange="loadFile(this, 'json-input')">
+                        <button class="icon-btn" onclick="document.getElementById('upload-json').click()"
+                            title="Upload File">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button class="icon-btn" onclick="copyToClipboard('json-input')" title="Copy to Clipboard">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'
+                    oninput="validateJSON()"></textarea>
+            </div>
         </div>
 
-        <div class="editor-pane">
-            <div class="pane-header">
-                <label><i class="fas fa-file-code"></i> Input JSON</label>
-                <div class="pane-actions">
-                    <input type="file" id="upload-json" accept=".json,.txt" style="display:none"
-                        onchange="loadFile(this, 'json-input')">
-                    <button class="icon-btn" onclick="document.getElementById('upload-json').click()"
-                        title="Upload File">
-                        <i class="fas fa-upload"></i>
-                    </button>
-                    <button class="icon-btn" onclick="copyToClipboard('json-input')" title="Copy to Clipboard">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-            <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'
-                oninput="validateJSON()"></textarea>
-        </div>
+        <div class="gutter gutter-vertical" id="gutter-v"></div>
 
-        <div class="editor-pane">
+        <div class="editor-pane result-pane" id="pane-result">
             <div class="pane-header">
-                <label><i class="fas fa-terminal"></i> Result</label>
+                <label>
+                    <button class="icon-btn fold-btn" onclick="toggleFold('pane-result')" title="Minimize"><i
+                            class="fas fa-minus"></i></button>
+                    <i class="fas fa-terminal"></i> Result
+                </label>
                 <div class="pane-actions">
                     <button class="icon-btn" onclick="downloadResult()" title="Save Result">
                         <i class="fas fa-download"></i>
@@ -160,7 +178,9 @@
     </footer>
 
     <script src="wasm_exec.js"></script>
+    <script src="mks_sql_ins_parser.js"></script>
     <script>
+
         // Use Wasm if not running on localhost:8080 (or if explicitly enabled, but for GitHub Pages we assume Wasm)
         // Or better: try to fetch /process, if fails, use Wasm. 
         // Actually, for GitHub Pages migration, we can just default to Wasm if the file exists or just always try to load it.
@@ -484,25 +504,26 @@
 
                 // Check if file is mks_sql_ins wrapper
                 if (text.includes("select mks_sql_ins(")) {
-                    const parsed = parseMksSqlIns(text);
-                    if (parsed) {
-                        if (parsed.info_raw) {
-                            const info = parseSqlInfo(parsed.info_raw);
-                            if (info) {
-                                let jsonVal = info;
-                                // If "default" key exists, use its value as the root object per user request
-                                if (info.default !== undefined) {
-                                    jsonVal = info.default;
+                    if (typeof MksSqlInsParser !== 'undefined') {
+                        const parser = new MksSqlInsParser();
+                        const parsed = parser.parse(text);
+                        if (parsed) {
+                            if (parsed.sql) {
+                                document.getElementById('sql-text').value = parsed.sql;
+                            }
+                            if (parsed.info && parsed.info.default !== undefined) {
+                                let val = parsed.info.default;
+                                if (typeof val === 'object') {
+                                    document.getElementById('json-input').value = JSON.stringify(val, null, 2);
+                                } else {
+                                    document.getElementById('json-input').value = val;
                                 }
-                                document.getElementById('json-input').value = JSON.stringify(jsonVal, null, 2);
                                 validateJSON();
                             }
+                            return;
                         }
-                        if (parsed.sql_raw) {
-                            const sql = cleanSql(parsed.sql_raw);
-                            document.getElementById('sql-text').value = sql;
-                        }
-                        return; // Successfully handled wrapper
+                    } else {
+                        console.warn("MksSqlInsParser not loaded");
                     }
                 }
 
@@ -768,6 +789,78 @@
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
+        }
+
+        /* --- Resizable & Foldable Core --- */
+
+        // Splitter Logic
+        const makeResizable = function (resizerId, prevSiblingId, direction) {
+            const resizer = document.getElementById(resizerId);
+            const prevSibling = document.getElementById(prevSiblingId);
+
+            if (!resizer || !prevSibling) return;
+
+            let x = 0;
+            let y = 0;
+            let prevSize = 0;
+
+            const mouseDownHandler = function (e) {
+                x = e.clientX;
+                y = e.clientY;
+                const rect = prevSibling.getBoundingClientRect();
+                prevSize = (direction === 'horizontal') ? rect.height : rect.width;
+
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+                document.body.style.cursor = (direction === 'horizontal') ? 'row-resize' : 'col-resize';
+                resizer.style.backgroundColor = 'var(--accent-color)'; // Active feedback
+            };
+
+            const mouseMoveHandler = function (e) {
+                const dx = e.clientX - x;
+                const dy = e.clientY - y;
+
+                if (direction === 'horizontal') {
+                    const newHeight = prevSize + dy;
+                    if (newHeight > 30) { // Min height
+                        prevSibling.style.flex = `0 0 ${newHeight}px`;
+                        // Also reset sibling? Flexbox should handle remaining space if other is flex:1
+                    }
+                } else {
+                    const newWidth = prevSize + dx;
+                    if (newWidth > 150) { // Min width
+                        prevSibling.style.flex = `0 0 ${newWidth}px`;
+                    }
+                }
+            };
+
+            const mouseUpHandler = function () {
+                document.body.style.cursor = '';
+                resizer.style.backgroundColor = '';
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+
+            resizer.addEventListener('mousedown', mouseDownHandler);
+        };
+
+        // Initialize Splitters
+        makeResizable('gutter-h', 'pane-sql', 'horizontal');
+        makeResizable('gutter-v', 'left-col', 'vertical');
+
+        // Fold Logic
+        function toggleFold(paneId) {
+            const pane = document.getElementById(paneId);
+            const btn = pane.querySelector('.fold-btn i');
+
+            pane.classList.toggle('collapsed');
+
+            if (pane.classList.contains('collapsed')) {
+                btn.classList.replace('fa-minus', 'fa-plus');
+                // Optional: Store size before collapse?
+            } else {
+                btn.classList.replace('fa-plus', 'fa-minus');
+            }
         }
     </script>
 </body>
