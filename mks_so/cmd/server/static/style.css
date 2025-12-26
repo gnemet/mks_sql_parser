@@ -114,6 +114,34 @@ header {
     align-items: center;
 }
 
+.pane-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+    opacity: 0.7;
+}
+
+.icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: var(--accent-color);
+    opacity: 1;
+}
+
+body.dark-mode .icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .run-btn {
     background-color: var(--accent-color);
     color: #fff;
@@ -122,6 +150,9 @@ header {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .run-btn:hover {
@@ -139,6 +170,23 @@ textarea,
     background: var(--pane-bg);
     color: var(--text-color);
     outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+/* Drag & Drop Feedback */
+textarea.drag-over,
+.output-area.drag-over {
+    border: 2px dashed var(--accent-color);
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+body.dark-mode textarea.drag-over {
+    background-color: rgba(77, 163, 255, 0.1);
+}
+
+/* JSON Validation State */
+textarea.invalid-json {
+    border: 1px solid #dc3545;
 }
 
 .output-area {
@@ -275,4 +323,38 @@ body.dark-mode .markdown-body tr:nth-child(2n) {
 .markdown-body h5,
 .markdown-body h6 {
     color: var(--text-color);
+}
+
+/* Footer */
+.app-footer {
+    background-color: var(--header-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 0.8rem;
+    text-align: center;
+    font-size: 0.9rem;
+    margin-top: auto;
+    /* Push to bottom if flex container covers height */
+}
+
+.footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.footer-content a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-content a:hover {
+    color: var(--accent-color);
+}
+
+.separator {
+    color: var(--border-color);
 }

@@ -122,5 +122,22 @@ func LoadTests(configBytes []byte) []TestCase {
 	if err != nil {
 		fmt.Printf("Error unmarshalling tests: %v\n", err)
 	}
-	return tests
+func LoadVersion(configBytes []byte) string {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+
+	if configBytes != nil {
+		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
+			return "unknown"
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("../..")
+		if err := viper.ReadInConfig(); err != nil {
+			return "unknown"
+		}
+	}
+
+	return viper.GetString("version")
 }

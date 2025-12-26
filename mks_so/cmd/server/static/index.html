@@ -44,23 +44,55 @@
         <div class="editor-pane">
             <div class="pane-header">
                 <label><i class="fas fa-code"></i> SQL Text</label>
+                <div class="pane-actions">
+                    <input type="file" id="upload-sql" accept=".sql,.txt" style="display:none"
+                        onchange="loadFile(this, 'sql-text')">
+                    <button class="icon-btn" onclick="document.getElementById('upload-sql').click()"
+                        title="Upload File">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button class="icon-btn" onclick="copyToClipboard('sql-text')" title="Copy to Clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
             </div>
-            <textarea id="sql-text" name="sql" spellcheck="false" placeholder="Enter SQL here..."></textarea>
+            <textarea id="sql-text" name="sql" spellcheck="false"
+                placeholder="Enter SQL here or drag & drop a file..."></textarea>
         </div>
 
         <div class="editor-pane">
             <div class="pane-header">
                 <label><i class="fas fa-file-code"></i> Input JSON</label>
+                <div class="pane-actions">
+                    <input type="file" id="upload-json" accept=".json,.txt" style="display:none"
+                        onchange="loadFile(this, 'json-input')">
+                    <button class="icon-btn" onclick="document.getElementById('upload-json').click()"
+                        title="Upload File">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button class="icon-btn" onclick="copyToClipboard('json-input')" title="Copy to Clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
             </div>
-            <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'></textarea>
+            <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'
+                oninput="validateJSON()"></textarea>
         </div>
 
         <div class="editor-pane">
             <div class="pane-header">
                 <label><i class="fas fa-terminal"></i> Result</label>
-                <button class="run-btn" onclick="runProcess()">
-                    <i class="fas fa-play"></i> Run
-                </button>
+                <div class="pane-actions">
+                    <button class="icon-btn" onclick="downloadResult()" title="Save Result">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="icon-btn" onclick="copyToClipboard('result-output')" title="Copy to Clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="run-btn" onclick="runProcess()">
+                        <i class="fas fa-play"></i> Run
+                    </button>
+                </div>
             </div>
             <div id="result-output" class="output-area"></div>
         </div>
@@ -76,6 +108,19 @@
         </div>
     </div>
 
+    <!-- About Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span>&copy; <span id="year"></span> Gabor Nemet</span>
+            <span class="separator">|</span>
+            <span>Version: <span id="app-version">Loading...</span></span>
+            <span class="separator">|</span>
+            <a href="https://github.com/gnemet/mks_sql_parser" target="_blank" title="View Source on GitHub">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+        </div>
+    </footer>
+
     <script src="wasm_exec.js"></script>
     <script>
         // Use Wasm if not running on localhost:8080 (or if explicitly enabled, but for GitHub Pages we assume Wasm)
@@ -87,7 +132,8 @@
         let wasmReady = false;
 
         // Try to load Wasm
-        WebAssembly.instantiateStreaming(fetch("mks.wasm"), go.importObject).then((result) => {
+        // Try to load Wasm
+        WebAssembly.instantiateStreaming(fetch("mks.wasm?v=" + new Date().getTime()), go.importObject).then((result) => {
             go.run(result.instance);
             console.log("Wasm loaded");
             wasmReady = true;
@@ -118,6 +164,10 @@
             try {
                 const patterns = JSON.parse(getPatterns());
                 const tests = JSON.parse(getTests());
+                // Version might be string or need parsing? It's just a string.
+                if (typeof getVersion === 'function') {
+                    document.getElementById('app-version').textContent = getVersion();
+                }
                 setupUI(tests, patterns);
             } catch (e) {
                 console.error("Error loading data from Wasm:", e);
@@ -127,11 +177,16 @@
         function initializeDataFromFetch() {
             Promise.all([
                 fetch('/tests').then(r => r.json()),
-                fetch('/patterns').then(r => r.json())
+                fetch('/patterns').then(r => r.json()),
+                // Server might not expose version? Let's just hardcode fallback or ignore.
             ]).then(([tests, patterns]) => {
+                document.getElementById('app-version').textContent = "1.0.0 (Server)";
                 setupUI(tests, patterns);
             }).catch(e => console.error("Fetch failed:", e));
         }
+
+        // Set Year
+        document.getElementById('year').textContent = new Date().getFullYear();
 
         function setupUI(tests, patterns) {
             const select = document.getElementById('test-chooser');
@@ -318,6 +373,133 @@
             if (event.target == modal) {
                 modal.style.display = "none";
             }
+        }
+
+        /* --- New UX Features --- */
+
+        // 1. File Upload & Drag-n-Drop
+        function setupDragDrop(elementId) {
+            const dropZone = document.getElementById(elementId);
+            if (!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight(e) {
+                dropZone.classList.add('drag-over');
+            }
+
+            function unhighlight(e) {
+                dropZone.classList.remove('drag-over');
+            }
+
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    processFile(files[0], elementId);
+                }
+            }
+        }
+
+        // Initialize Drag & Drop
+        setupDragDrop('sql-text');
+        setupDragDrop('json-input');
+
+        function loadFile(input, targetId) {
+            if (input.files && input.files[0]) {
+                processFile(input.files[0], targetId);
+                // Reset input so same file can be selected again if needed
+                input.value = '';
+            }
+        }
+
+        function processFile(file, targetId) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const text = e.target.result;
+                const target = document.getElementById(targetId);
+                target.value = text;
+
+                // If JSON input, trigger validation
+                if (targetId === 'json-input') {
+                    validateJSON();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 2. JSON Validation
+        function validateJSON() {
+            const input = document.getElementById('json-input');
+            const val = input.value.trim();
+            if (!val) {
+                input.classList.remove('invalid-json');
+                return;
+            }
+            try {
+                JSON.parse(val);
+                input.classList.remove('invalid-json');
+            } catch (e) {
+                input.classList.add('invalid-json');
+            }
+        }
+
+        // 3. Copy to Clipboard
+        function copyToClipboard(elementId) {
+            let text = "";
+            const el = document.getElementById(elementId);
+
+            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+                text = el.value;
+            } else {
+                text = el.innerText; // For div/output
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Determine button to give feedback
+                // Find button related to this action? 
+                // We typically call this from an onclick, but passed ID. 
+                // It's hard to find the *exact* button instance easily without passing 'this'. 
+                // For now, simpler implementation: just log or simple visual cue if possible.
+                // Or we can find button via selector near the element header?
+                // Let's keep it simple: maybe show a global Toast? Or just assume it works.
+                console.log("Copied to clipboard");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // 4. Download Result
+        function downloadResult() {
+            const content = document.getElementById('result-output').innerText;
+            if (!content) return;
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'result.txt'; // or .sql
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>

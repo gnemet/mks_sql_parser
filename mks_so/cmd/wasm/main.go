@@ -36,6 +36,7 @@ func main() {
 	js.Global().Set("processSql", js.FuncOf(processSql))
 	js.Global().Set("getPatterns", js.FuncOf(getPatterns))
 	js.Global().Set("getTests", js.FuncOf(getTests))
+	js.Global().Set("getVersion", js.FuncOf(getVersion))
 
 	fmt.Println("WASM MKS SQL Parser Initialized")
 	<-c
@@ -76,4 +77,8 @@ func getTests(this js.Value, args []js.Value) interface{} {
 	tests := config.LoadTests(configBytes)
 	data, _ := json.Marshal(tests)
 	return string(data)
+}
+
+func getVersion(this js.Value, args []js.Value) interface{} {
+	return config.LoadVersion(configBytes)
 }
