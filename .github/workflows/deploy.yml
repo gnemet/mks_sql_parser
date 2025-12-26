@@ -1,0 +1,33 @@
+name: Deploy Wasm to GitHub Pages
+
+on:
+    push:
+        branches: [main, master]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.21"
+
+            - name: Build Wasm
+              run: |
+                  cd mks_so
+                  chmod +x build_wasm.sh
+                  ./build_wasm.sh
+
+            - name: Deploy to GitHub Pages
+              uses: JamesIves/github-pages-deploy-action@v4
+              with:
+                  folder: mks_so/cmd/server/static
+                  branch: gh-pages
