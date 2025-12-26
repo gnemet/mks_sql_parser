@@ -155,12 +155,15 @@
                 opt.value = index;
 
                 let desc = "Unknown Pattern";
-                if (patternMap[test.id]) {
+                if (test.description && test.description.length > 0) {
+                    desc = test.description;
+                } else if (patternMap[test.id]) {
                     desc = patternMap[test.id];
-                    if (desc.length > 120) desc = desc.substring(0, 117) + "...";
                 }
 
-                opt.textContent = `Test ${test.id} - ${desc}`;
+                if (desc.length > 120) desc = desc.substring(0, 117) + "...";
+
+                opt.textContent = `${test.id} - ${desc}`;
                 select.appendChild(opt);
             });
         }
