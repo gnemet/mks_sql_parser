@@ -37,7 +37,7 @@ patterns:
 
   - id: 9
     regex: '\$1->[$>^&@#]*''([^'']+)'''
-    action: line_filter_legacy
+    action: replace_delete
     description: "Postgres Filter: Legacy support for Postgres-style JSON operators, treated as line filters. Matches: $1->'key'"
 
   - id: 10
@@ -270,4 +270,12 @@ test:
       Admin Selection
       -->
     expected: |
+    passed: true
+  - id: 9
+    description: "Legacy Postgres Filter: Checks for existence of key with $1->'key'."
+    input: { "foldrajziBesorolas": "east" }
+    text: |
+      and ( $1->^'foldrajziBesorolas')  = any ( mme."foldrajziBesorolas" )
+    expected: |
+      and ( $1->^'foldrajziBesorolas')  = any ( mme."foldrajziBesorolas" )
     passed: true

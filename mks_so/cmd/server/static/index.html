@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 <textarea id="sql-text" name="sql" spellcheck="false"
-                    placeholder="Enter SQL here or drag & drop a file..."></textarea>
+                    placeholder="Enter SQL here or drag & drop a file..." oninput="saveState()"></textarea>
             </div>
 
             <div class="gutter gutter-horizontal" id="gutter-h"></div>
@@ -90,7 +90,7 @@
                     </div>
                 </div>
                 <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'
-                    oninput="validateJSON()"></textarea>
+                    oninput="validateJSON(); saveState()"></textarea>
             </div>
         </div>
 
@@ -807,6 +807,31 @@
                 input.classList.add('invalid-json');
             }
         }
+
+        // 3. Persistence (LocalStorage)
+        function saveState() {
+            const sql = document.getElementById('sql-text').value;
+            const json = document.getElementById('json-input').value;
+            localStorage.setItem('mks_sql_text', sql);
+            localStorage.setItem('mks_json_input', json);
+        }
+
+        function loadState() {
+            const savedSql = localStorage.getItem('mks_sql_text');
+            const savedJson = localStorage.getItem('mks_json_input');
+
+            if (savedSql !== null) {
+                document.getElementById('sql-text').value = savedSql;
+            }
+            if (savedJson !== null) {
+                document.getElementById('json-input').value = savedJson;
+                validateJSON();
+            }
+        }
+
+        // Call loadState on init
+        loadState();
+
 
         // 3. Copy to Clipboard
         function copyToClipboard(elementId) {
