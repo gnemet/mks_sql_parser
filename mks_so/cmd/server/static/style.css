@@ -1,11 +1,13 @@
 :root {
-    --bg-color: #f5f5f5;
-    --text-color: #333;
-    --header-bg: #fff;
-    --pane-bg: #fff;
-    --border-color: #ddd;
-    --accent-color: #007bff;
-    --accent-hover: #0056b3;
+    --bg-color: #eae7dc;
+    --text-color: #433e38;
+    --header-bg: #ece9e0;
+    --pane-bg: #f4f1ea;
+    --border-color: #d0cdc3;
+    /* Slightly darkened border */
+    --accent-color: #e98074;
+    /* A warmer accent (Coral/Terracotta) */
+    --accent-hover: #d26a5e;
     --code-font: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 

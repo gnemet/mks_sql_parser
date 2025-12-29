@@ -431,7 +431,7 @@
         // Check system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.body.classList.replace('light-mode', 'dark-mode');
-            document.querySelector('#theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+            document.querySelector('#theme-toggle i').classList.replace('fa-moon', 'fa-lightbulb');
         }
         updateHighlightTheme();
 
@@ -445,12 +445,12 @@
             if (event.matches) {
                 if (body.classList.contains('light-mode')) {
                     body.classList.replace('light-mode', 'dark-mode');
-                    icon.classList.replace('fa-moon', 'fa-sun');
+                    icon.classList.replace('fa-moon', 'fa-lightbulb');
                 }
             } else {
                 if (body.classList.contains('dark-mode')) {
                     body.classList.replace('dark-mode', 'light-mode');
-                    icon.classList.replace('fa-sun', 'fa-moon');
+                    icon.classList.replace('fa-lightbulb', 'fa-moon');
                 }
             }
             updateHighlightTheme();
@@ -461,10 +461,10 @@
             const icon = document.querySelector('#theme-toggle i');
             if (body.classList.contains('light-mode')) {
                 body.classList.replace('light-mode', 'dark-mode');
-                icon.classList.replace('fa-moon', 'fa-sun');
+                icon.classList.replace('fa-moon', 'fa-lightbulb');
             } else {
                 body.classList.replace('dark-mode', 'light-mode');
-                icon.classList.replace('fa-sun', 'fa-moon');
+                icon.classList.replace('fa-lightbulb', 'fa-moon');
             }
             updateHighlightTheme();
         }
