@@ -1,0 +1,35 @@
+{
+  "basic": {
+    "exists": true,
+    "value_match": "match",
+    "value_mismatch": "mismatch"
+  },
+  "sub": {
+    "replace": "replaced_value",
+    "keep_line": "kept"
+  },
+  "pg": {
+    "simple_key": "simple_val",
+    "array_str": ["a", "b", "c"],
+    "nested": {
+      "deep_key": "deep_val",
+      "number": 42
+    }
+  },
+  "ops": {
+    "email": "test@gmail.com",
+    "name": "John Doe",
+    "desc": "This is a long description text",
+    "status": "active"
+  },
+  "jsonpath": {
+    "a": 10,
+    "b": 20,
+    "list": [
+      { "id": 1, "active": true },
+      { "id": 2, "active": false }
+    ]
+  },
+  "special_chars": "value_with_underscore",
+  "empty_str": ""
+}

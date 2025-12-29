@@ -1,5 +1,6 @@
-version: "1.0.0014"
-last_build: "2025-12-26 17:30"
+# WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
+version: "1.0.0016"
+last_build: "2025-12-29 17:31"
 patterns:
   - id: 1
     regex: '--<(!?)(\w+)(?::(\w+))?'
@@ -10,9 +11,9 @@ patterns:
     action: block_start_jsonpath
     description: "Matches JSONPath block starts: --<{ $.path.to.key }"
   - id: 3
-    regex: '-->|--(\w+)>'
+    regex: '-->([\w!:]+)?|--([\w!:]+)>'
     action: block_end
-    description: "Matches block ends: --> or --tag>"
+    description: "Matches block ends: --> or -->tag or --tag>"
   - id: 4
     regex: '--\s*<\s*\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?\s*>'
     action: block_start_nested
@@ -31,14 +32,14 @@ patterns:
     action: line_filter_simple_extended
     description: "Matches simple conditional line filters: --#key = 'value' or other ops"
   - id: 8
-    regex: '#(!?)(\w+)(?::(!?)(\w+))?'
+    regex: '#(!?)([\w]+)(?::(!?)([\w]+))?'
     action: line_filter
-    description: "Matches standard line filters: #tag, #!tag, #tag:subtag"
+    description: "Matches standard line filters: #tag, #!tag, #tag:subtag, #!tag:val, #tag:!val"
 
   - id: 9
-    regex: '\$1->[$>^&@#]*''([^'']+)'''
-    action: line_filter_legacy
-    description: "Postgres Filter: Legacy support for Postgres-style JSON operators, treated as line filters. Matches: $1->'key'"
+    regex: '\$1\s*(?:->>|->|#>>|#>|#=|#\^|#@|->&|#&|->\^|->@|->>>|#>>>|->&&|#&&|#>=#|#<=#|#<>#|->##|#>##|->\^\^|->@@|#\^\^|#@@)\s*''([^'']+)'''
+    action: delete
+    description: "Postgres Filter: Checks for key existence using various JSON operators. Matches: $1->'key', $1#>>'key', etc."
 
   - id: 10
     regex: '\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?'
@@ -56,218 +57,271 @@ patterns:
     description: "Replace or Empty: Handles bracketed placeholder syntax. Matches: %variable_name%"
 
 test:
-  - id: 12
-    description: "Replace with Value: Replaces %operator% with the provided value '~~*'."
-    input: { "operator": "'~~*'" }
+  # Test ID 1: Block Logic
+  - id: 1
+    subid: 1
+    description: "Block Exists: Keep block if key exists."
+    input: { "key": true }
     text: |
-      select 
-      'dummy' as dummy
-      %operator% as operator
+      --<key
+      KEPT
+      -->key
     expected: |
-      select 
-      'dummy' as dummy
-      '~~*' as operator
+      KEPT
     passed: true
-
-  # Test ID 11: Replace or Delete ($variable or :variable)
-  - id: 11
-    description: "Replace Standard: Substitution using $my_var syntax."
-    input: { "my_var": "some_value" }
-    text: "WHERE column = $my_var"
-    expected: "WHERE column = some_value"
-    passed: true
-  - id: 11
-    description: "Delete Missing: Removes $missing_var if not found in input."
-    input: {}
-    text: "WHERE column = $missing_var"
+  - id: 1
+    subid: 2
+    description: "Block Not Exists: Delete block if key exists."
+    input: { "key": true }
+    text: |
+      --<!key
+      DELETED
+      -->!key
     expected: ""
     passed: true
-  - id: 11
-    description: "Replace Legacy: Substitution using :my_param syntax."
-    input: { "my_param": "123" }
-    text: "LIMIT :my_param"
-    expected: "LIMIT 123"
+  - id: 1
+    subid: 3
+    description: "Block Value: Keep block if key=value."
+    input: { "key": "val" }
+    text: |
+      --<key:val
+      KEPT
+      --key>
+    expected: |
+      KEPT
     passed: true
+  - id: 1
+    subid: 4
+    description: "Block Not Value: Delete block if key=value."
 
-  # Test ID 12: Replace or Empty (%variable%) - Negative/Empty Case
-  - id: 12
-    description: "Replace Empty: Replaces %missing_var% with empty string if missing."
-    input: {}
-    text: "SELECT %missing_var% as col"
-    expected: "SELECT  as col"
-    passed: true
-
-  # Test ID 8: Standard Line Filters (#tag)
-  - id: 8
-    description: "Line Filter: Includes line because #my_tag is true."
-    input: { "my_tag": true }
-    text: "SELECT * FROM table #my_tag"
-    expected: "SELECT * FROM table "
-    passed: true
-  - id: 8
-    description: "Line Filter: Excludes line because #my_tag is false."
-    input: { "my_tag": false }
-    text: "SELECT * FROM table #my_tag"
+    input: { "key": "val" }
+    text: |
+      --<!key:val
+      DELETED
+      --key>
     expected: ""
+    passed: true
+
+  # Test ID 8: Line Filter Logic
+  - id: 8
+    subid: 1
+    description: "Line Exists: Keep line if key exists."
+    input: { "key": true }
+    text: "SELECT 1 --#key"
+    expected: "SELECT 1 --#key"
     passed: true
   - id: 8
-    description: "Line Filter Negated: Includes line because #!my_tag is satisfied (false)."
-    input: { "my_tag": false }
-    text: "SELECT * FROM table #!my_tag"
-    expected: "SELECT * FROM table "
+    subid: 2
+    description: "Line Not Exists: Delete line if key exists."
+    input: { "key": true }
+    text: "SELECT 1 --#!key"
+    expected: ""
     passed: true
-
-  # Test ID 7: Simple Extended Line Filters (--#key = 'val')
-  - id: 7
-    description: "Extended Line Filter: Matches because env='prod'."
-    input: { "env": "prod" }
-    text: "DROP TABLE users; --#env = 'prod'"
-    expected: "DROP TABLE users; "
+  - id: 8
+    subid: 3
+    description: "Line Value: Keep line if key=value."
+    input: { "key": "val" }
+    text: "SELECT 1 --#key:val"
+    expected: "SELECT 1 --#key:val"
     passed: true
-  - id: 7
-    description: "Extended Line Filter: Excludes because env='dev' != 'prod'."
-    input: { "env": "dev" }
-    text: "DROP TABLE users; --#env = 'prod'"
+  - id: 8
+    subid: 4
+    description: "Line Not Value: Delete line if key=value."
+    input: { "key": "val" }
+    text: "SELECT 1 --#!key:val"
+    expected: ""
+    passed: true
+  - id: 8
+    subid: 5
+    description: "Line Not Value (Alt): Delete line if key=value."
+    input: { "key": "val" }
+    text: "SELECT 1 --#key:!val"
     expected: ""
     passed: true
 
-  # Test ID 6: JSONPath Line Filters (--#{ $.key })
-  - id: 6
-    description: "JSONPath Line Filter: Includes because config.enabled is true."
-    input: { "config": { "enabled": true } }
-    text: "feature_flag = on --#{ $.config.enabled }"
-    expected: "feature_flag = on "
-    passed: true
-  - id: 6
-    description: "JSONPath Line Filter: Excludes because config.enabled is false."
-    input: { "config": { "enabled": false } }
-    text: "feature_flag = on --#{ $.config.enabled }"
-    expected: ""
-    passed: true
-
-  # Test ID 9: Legacy Postgres Filter ($1->'key')
+  # Test ID 9: Postgres Filters
   - id: 9
-    description: "Legacy Postgres Filter: Checks for existence of key with $1->'key'."
-    input: { "type": "admin" }
-    text: "GRANT ALL; $1->'type'"
-    expected: "GRANT ALL; "
+    subid: 1
+    description: "PG: -> Operator"
+    input: { "key": 1 }
+    text: "SELECT $1->'key'"
+    expected: "SELECT $1->'key'"
     passed: true
-  # Note: Assuming legacy filter checks for truthiness/existence of key if no value specified in regex
-
-  # Test ID 10: Nested Line Filter ($1 #> '{path}' = 'val')
-  - id: 10
-    description: "Nested Line Filter: Matches nested path '{settings,theme}' = 'dark'."
-    input: { "settings": { "theme": "dark" } }
-    text: "color: black; $1 #> '{settings,theme}' = 'dark'"
-    expected: "color: black; "
+  - id: 9
+    subid: 2
+    description: "PG: #>> Operator"
+    input: { "key": 1 }
+    text: "SELECT $1#>>'key'"
+    expected: "SELECT $1#>>'key'"
     passed: true
-  - id: 10
-    description: "Nested Line Filter: Excludes because theme is 'light'."
-    input: { "settings": { "theme": "light" } }
-    text: "color: black; $1 #> '{settings,theme}' = 'dark'"
+  - id: 9
+    subid: 3
+    description: "PG: Missing Key"
+    input: { "other": 1 }
+    text: "SELECT $1->'key'"
     expected: ""
     passed: true
+  - id: 13
+    subid: 1
+    description: "All Rules Comprehensive Test"
+    input:
+      basic:
+        exists: true
+        value_match: "match"
+        value_mismatch: "mismatch"
+      sub:
+        replace: "replaced_value"
+        keep_line: "kept"
+      pg:
+        simple_key: "simple_val"
+        array_str: ["a", "b", "c"]
+        nested:
+          deep_key: "deep_val"
+          number: 42
+      ops:
+        email: "test@gmail.com"
+        name: "John Doe"
+        desc: "This is a long description text"
+        status: "active"
+      jsonpath:
+        a: 10
+        b: 20
+        list:
+          - id: 1
+            active: true
+          - id: 2
+            active: false
+      special_chars: "value_with_underscore"
+      empty_str: ""
+    text: |
+      -- ============================================================
+      -- MKS SQL Parser Comprehensive Test Case
+      -- Covers all rules defined in config.yaml (IDs 1-12)
+      -- Input: test/all_rules.json
+      -- ============================================================
 
-  # Test ID 1 (Block Start) & ID 3 (Block End) - Standard
-  - id: 1
-    description: "Standard Block: Includes block because show_section is true."
-    input: { "show_section": true }
-    text: |
-      Before
-      --<show_section
-      Inside Block
-      -->
-      After
-    expected: |
-      Before
-      Inside Block
-      After
-    passed: true
-  - id: 1
-    description: "Standard Block: Excludes block because show_section is false."
-    input: { "show_section": false }
-    text: |
-      Before
-      --<show_section
-      Inside Block
-      -->
-      After
-    expected: |
-      Before
-      After
-    passed: true
+      SELECT 'START_TEST' as status;
 
-  # Test ID 1 (Block Start) - Negated (!tag)
-  - id: 1
-    description: "Negated Block: Includes block because !hide_section is true (value is false)."
-    input: { "hide_section": false }
-    text: |
-      --<!hide_section
-      Visible
-      -->
-    expected: |
-      Visible
-    passed: true
+      -- ============================================================
+      -- GROUP 1: BLOCK LOGIC (IDs 1, 2, 3, 4, 5)
+      -- ============================================================
 
-  # Test ID 2: JSONPath Block (--<{ $.key } )
-  - id: 2
-    description: "JSONPath Block: Includes because $.features.beta is true."
-    input: { "features": { "beta": true } }
-    text: |
-      --<{ $.features.beta }
-      Beta Feature
+      -- [ID 1] Standard Block Logic
+      -- 1.1 Exists (Should be KEPT)
+      --<basic.exists
+      SELECT 'Block 1.1 KEPT' as rule_1_exists;
       -->
-    expected: |
-      Beta Feature
-    passed: true
-  - id: 2
-    description: "JSONPath Block: Excludes because $.features.beta is false."
-    input: { "features": { "beta": false } }
-    text: |
-      --<{ $.features.beta }
-      Beta Feature
-      -->
-    expected: |
-    passed: true
 
-  # Test ID 5: Simple Extended Block (--< #key = 'val' >)
-  - id: 5
-    description: "Extended Block: Matches because #env = 'prod'."
-    input: { "env": "prod" }
-    text: |
-      --< #env = 'prod' >
-      Production Config
+      -- 1.2 Not Exists (Should be KEPT)
+      --<!basic.missing_key
+      SELECT 'Block 1.2 KEPT' as rule_1_not_exists;
       -->
-    expected: |
-      Production Config
-    passed: true
-  - id: 5
-    description: "Extended Block: Excludes because #env != 'prod'."
-    input: { "env": "test" }
-    text: |
-      --< #env = 'prod' >
-      Production Config
-      -->
-    expected: |
-    passed: true
 
-  # Test ID 4: Nested Block ($1 #> '{key}' = 'val')
-  - id: 4
-    description: "Nested Block: Matches {user,role} = 'admin'."
-    input: { "user": { "role": "admin" } }
-    text: |
-      --< $1 #> '{user,role}' = 'admin' >
-      Admin Selection
+      -- 1.3 Value Match (Should be KEPT)
+      --<basic.value_match:match
+      SELECT 'Block 1.3 KEPT' as rule_1_value_match;
       -->
-    expected: |
-      Admin Selection
-    passed: true
-  - id: 4
-    description: "Nested Block: Excludes because role is not admin."
-    input: { "user": { "role": "guest" } }
-    text: |
-      --< $1 #> '{user,role}' = 'admin' >
-      Admin Selection
+
+      -- 1.4 Value Mismatch (Should be REMOVED)
+      --<basic.value_match:wrong_value
+      SELECT 'Block 1.4 REMOVED' as rule_1_value_mismatch;
       -->
-    expected: |
-    passed: true
+
+      -- [ID 2] JSONPath Block Logic
+      -- 2.1 Complex Expression (Should be KEPT)
+      --<{ $.jsonpath.a + $.jsonpath.b == 30 }
+      SELECT 'Block 2.1 KEPT' as rule_2_jsonpath_math;
+      -->
+
+      -- 2.2 Array Check (Should be KEPT)
+      --<{ $.jsonpath.list[0].active == true }
+      SELECT 'Block 2.2 KEPT' as rule_2_jsonpath_array;
+      -->
+
+      -- 2.3 False Expression (Should be REMOVED)
+      --<{ $.jsonpath.a > 100 }
+      SELECT 'Block 2.3 REMOVED' as rule_2_jsonpath_false;
+      -->
+
+      -- [ID 4] Nested Block (Postgres Syntax)
+      -- 4.1 Nested Exists (Should be KEPT)
+      --< $1 #> '{pg,nested,deep_key}' >
+      SELECT 'Block 4.1 KEPT' as rule_4_nested_exists;
+      -->
+
+      -- 4.2 Nested Value Match (Should be KEPT)
+      --< $1 #> '{pg,nested,number}' = '42' >
+      SELECT 'Block 4.2 KEPT' as rule_4_nested_value;
+      -->
+
+      -- [ID 5] Simple Extended Block Logic
+      -- 5.1 Regex Match (Should be KEPT)
+      --< #'ops.email' ~ '@gmail\.com$' >
+      SELECT 'Block 5.1 KEPT' as rule_5_regex;
+      -->
+
+      -- 5.2 LIKE Match (Should be KEPT)
+      --< #'ops.name' ~~ 'J%' >
+      SELECT 'Block 5.2 KEPT' as rule_5_like;
+      -->
+
+      -- 5.3 Not Equal (Should be KEPT)
+      --< #'ops.status' != 'inactive' >
+      SELECT 'Block 5.3 KEPT' as rule_5_not_equal;
+      -->
+
+      -- ============================================================
+      -- GROUP 2: LINE FILTERS (IDs 6, 7, 8, 10)
+      -- ============================================================
+
+      -- [ID 8] Standard Line Filters
+      SELECT 'Line 8.1 KEPT' as rule_8_exists;      -- #basic.exists
+      SELECT 'Line 8.2 REMOVED' as rule_8_exists_fail; -- #basic.missing
+      SELECT 'Line 8.3 KEPT' as rule_8_not_exists;  -- #!basic.missing
+      SELECT 'Line 8.4 KEPT' as rule_8_val_match;   -- #basic.value_match:match
+      SELECT 'Line 8.5 REMOVED' as rule_8_val_fail;    -- #basic.value_match:wrong
+
+      -- [ID 6] JSONPath Line Filters
+      SELECT 'Line 6.1 KEPT' as rule_6_path_true;   -- #{ $.jsonpath.b > 10 }
+      SELECT 'Line 6.2 REMOVED' as rule_6_path_false;  -- #{ $.jsonpath.b < 10 }
+
+      -- [ID 7] Simple Extended Line Filters
+      SELECT 'Line 7.1 KEPT' as rule_7_regex;       -- #'ops.email' ~ 'test'
+      SELECT 'Line 7.2 REMOVED' as rule_7_regex_fail;  -- #'ops.email' !~ 'test'
+      SELECT 'Line 7.3 KEPT' as rule_7_like;        -- #'ops.desc' ~~ '%long%'
+
+      -- [ID 10] Nested Line Filters (Postgres Syntax)
+      SELECT 'Line 10.1 KEPT' as rule_10_nest_ex;   -- $1 #> '{pg,nested,deep_key}'
+      SELECT 'Line 10.2 KEPT' as rule_10_nest_val;  -- $1 #> '{pg,nested,number}' = '42'
+      SELECT 'Line 10.3 REMOVED' as rule_10_val_fail;  -- $1 #> '{pg,nested,number}' = '99'
+
+      -- ============================================================
+      -- GROUP 3: POSTGRES FILTERS (ID 9)
+      -- ============================================================
+
+      -- 9.1 Simple Key Access (Result must not be null/missing)
+      SELECT 1 FROM tmptbl WHERE id = $1->'pg'; -- Kept because 'pg' exists
+
+      -- 9.2 Path Access
+      SELECT 1 FROM tmptbl WHERE val = $1#>>'{pg,simple_key}'; -- Kept
+
+      -- 9.3 Missing Key (Should be REMOVED)
+      SELECT 1 FROM tmptbl WHERE id = $1->'non_existent_key'; -- REMOVED
+
+      -- ============================================================
+      -- GROUP 4: SUBSTITUTIONS (IDs 11, 12)
+      -- ============================================================
+
+      -- [ID 12] Replace or Empty (%key%)
+      SELECT '%sub.replace%' as rule_12_replaced; -- Should be 'replaced_value'
+      SELECT '%sub.missing%' as rule_12_empty;    -- Should be ''
+
+      -- [ID 11] Replace or Delete (:key, $key)
+      SELECT :sub.replace    as rule_11_colon_kept;   -- Should be replaced
+      SELECT :sub.missing    as rule_11_colon_del;    -- Should be REMOVED
+      SELECT $sub.replace    as rule_11_dollar_kept;  -- Should be replaced
+      SELECT $sub.missing    as rule_11_dollar_del;   -- Should be REMOVED
+
+      SELECT 'END_TEST' as status;
+    expected: ""
+    passed: false

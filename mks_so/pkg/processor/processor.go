@@ -77,6 +77,7 @@ func processSingle(sqlText string, inputMap map[string]interface{}, debug bool, 
 	first := true
 	for scanner.Scan() {
 		line := scanner.Text()
+		originalLine := line
 		lineDeleted := false
 
 		// 1. Block Logic
@@ -114,7 +115,7 @@ func processSingle(sqlText string, inputMap map[string]interface{}, debug bool, 
 			if minify || !debug {
 				continue
 			}
-			line = fmt.Sprintf("-- deleted: %s", line)
+			line = fmt.Sprintf("-- deleted: %s", originalLine)
 		} else {
 			if minify {
 				if idx := strings.Index(line, "--"); idx != -1 {
@@ -125,7 +126,7 @@ func processSingle(sqlText string, inputMap map[string]interface{}, debug bool, 
 					continue
 				}
 			} else if debug {
-				line = line + " -- kept"
+				line = fmt.Sprintf("%s -- kept [original: %s]", line, originalLine)
 			} else {
 				if strings.TrimSpace(line) == "" {
 					continue
@@ -200,7 +201,6 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 				shouldDelete = true
 			}
 		}
-		line = cp.Re.ReplaceAllString(line, "")
 	case "line_filter_simple_extended":
 		matches := cp.Re.FindAllStringSubmatch(line, -1)
 		for _, m := range matches {
@@ -208,7 +208,6 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 				shouldDelete = true
 			}
 		}
-		line = cp.Re.ReplaceAllString(line, "")
 	case "line_filter":
 		matches := cp.Re.FindAllStringSubmatch(line, -1)
 		for _, m := range matches {
@@ -217,8 +216,17 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 			negateVal := m[3] == "!"
 			val := m[4]
 			if val != "" {
-				if !evaluator.CheckCondition(inputMap, key, val, negateVal) {
-					shouldDelete = true
+				// If negateVal is true (#!key:val or #key:!val depending on regex), we want to DELETE if equal.
+				// CheckCondition returns true if equal.
+				conditionMet := evaluator.CheckCondition(inputMap, key, val, false)
+				if negateVal || negateKey {
+					if conditionMet { // If matches, delete (because we wanted !match)
+						shouldDelete = true
+					}
+				} else {
+					if !conditionMet {
+						shouldDelete = true
+					}
 				}
 			} else {
 				if !evaluator.CheckCondition(inputMap, key, "", negateKey) {
@@ -226,7 +234,6 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 				}
 			}
 		}
-		line = cp.Re.ReplaceAllString(line, "")
 	case "line_filter_legacy":
 		matches := cp.Re.FindAllStringSubmatch(line, -1)
 		for _, m := range matches {
@@ -256,7 +263,6 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 				shouldDelete = true
 			}
 		}
-		line = cp.Re.ReplaceAllString(line, "")
 	case "replace_delete":
 		line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
 			sub := cp.Re.FindStringSubmatch(matchStr)
@@ -277,6 +283,25 @@ func handleLineLogic(line string, inputMap map[string]interface{}, cp config.Com
 			} else {
 				return ""
 			}
+		})
+	case "delete":
+		line = cp.Re.ReplaceAllStringFunc(line, func(matchStr string) string {
+			sub := cp.Re.FindStringSubmatch(matchStr)
+			if len(sub) > 1 {
+				key := sub[1]
+				// Check for exact match
+				if _, ok := inputMap[key]; ok {
+					return matchStr
+				}
+				// Check for case-insensitive match
+				for k := range inputMap {
+					if strings.EqualFold(k, key) {
+						return matchStr
+					}
+				}
+			}
+			shouldDelete = true
+			return matchStr
 		})
 	}
 	return shouldDelete, line

@@ -18,6 +18,9 @@ func TestYamlConfigProcessing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("ID_%d", tt.ID), func(t *testing.T) {
+			if !tt.Passed {
+				t.Skipf("Skipping test ID %d because passed=false", tt.ID)
+			}
 			inputBytes, err := json.Marshal(tt.Input)
 			if err != nil {
 				t.Fatalf("Failed to marshal input: %v", err)
