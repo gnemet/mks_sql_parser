@@ -48,10 +48,10 @@ func handleTests(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tests)
 }
 
-func handlePatterns(w http.ResponseWriter, r *http.Request) {
+func handleRules(w http.ResponseWriter, r *http.Request) {
 	patterns, err := config.LoadConfigs(nil)
 	if err != nil {
-		http.Error(w, "Failed to load patterns", http.StatusInternalServerError)
+		http.Error(w, "Failed to load rules", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

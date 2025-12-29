@@ -59,6 +59,10 @@ GOOS=js GOARCH=wasm go build -o cmd/server/static/mks.wasm cmd/wasm/main.go
 echo "Copying documentation..."
 cp -r ../doc/reference_guide.md cmd/server/static/reference_guide.md
 # Also copy parser_rules if needed
-cp -r ../doc/parser_rules.md cmd/server/static/parser_rules.md
+# Also copy parser_rules if needed
+cp ../doc/parser_rules.md cmd/server/static/parser_rules.md
+
+# Update version and date in the copied parser_rules.md
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/parser_rules.md
 
 echo "Wasm build and asset copy complete."

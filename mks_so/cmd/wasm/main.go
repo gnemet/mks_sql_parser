@@ -36,7 +36,7 @@ func main() {
 	c := make(chan struct{}, 0)
 
 	js.Global().Set("processSql", js.FuncOf(processSql))
-	js.Global().Set("getPatterns", js.FuncOf(getPatterns))
+	js.Global().Set("getRules", js.FuncOf(getRules))
 	js.Global().Set("getTests", js.FuncOf(getTests))
 	js.Global().Set("getVersion", js.FuncOf(getVersion))
 
@@ -45,14 +45,14 @@ func main() {
 }
 
 // Global initialization of regexes for Wasm environment
-var wasmPatterns []config.CompiledPattern
+var wasmRules []config.CompiledRule
 
 func init() {
-	wasmPatterns = config.LoadPatternsWithConfig(configBytes)
+	wasmRules = config.LoadRulesWithConfig(configBytes)
 	// We need to pass these to processor.
 	// Since we haven't updated processor to accept patterns injection,
-	// We will rely on a new function in processor package: SetPatterns
-	processor.SetPatterns(wasmPatterns)
+	// We will rely on a new function in processor package: SetRules
+	processor.SetRules(wasmRules)
 }
 
 func processSql(this js.Value, args []js.Value) interface{} {
@@ -70,7 +70,7 @@ func processSql(this js.Value, args []js.Value) interface{} {
 	return result
 }
 
-func getPatterns(this js.Value, args []js.Value) interface{} {
+func getRules(this js.Value, args []js.Value) interface{} {
 	configs, err := config.LoadConfigs(configBytes)
 	if err != nil {
 		return fmt.Sprintf("Error: %s", err)

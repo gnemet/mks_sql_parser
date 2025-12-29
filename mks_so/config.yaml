@@ -1,59 +1,65 @@
-version: "1.0.0016"
-last_build: "2025-12-29 17:31"
-patterns:
+version: "1.0.0023"
+last_build: "2025-12-29 19:37"
+rules:
   - id: 1
-    regex: '--<(!?)(\w+)(?::(\w+))?'
-    action: block_start
     description: "Block Logic: Defines the start and end of conditional or iterative blocks. Matches standard block starts: --<tag, --<!tag (negated), or --<tag:subtag"
+    regex: '--<(!?)([\w]+)(?:(:|!:)([^>\s]+))?'
+    action: block_start
+
   - id: 2
+    description: "Matches JSONPath block starts: --<{ $.path.to.key }"
     regex: '--\s*<\{\s*(.*?)\s*\}'
     action: block_start_jsonpath
-    description: "Matches JSONPath block starts: --<{ $.path.to.key }"
+
   - id: 3
-    regex: '-->([\w!:]+)?|--([\w!:]+)>'
+    description: "Matches block ends: --> or --tag> or -->tag"
+    regex: '^\s*--(?:[\w!:]+>|>(?:[\w!:]*))\s*$'
     action: block_end
-    description: "Matches block ends: --> or -->tag or --tag>"
+
   - id: 4
+    description: "Matches nested block starts using Postgres array syntax: --< $1 #> '{key1,key2}' = 'value' >"
     regex: '--\s*<\s*\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?\s*>'
     action: block_start_nested
-    description: "Matches nested block starts using Postgres array syntax: --< $1 #> '{key}' = 'value' >"
+
   - id: 5
+    description: "Matches simple conditional block starts: --< #key = 'value' > or --< #key != 'value' > or other ops"
     regex: '--\s*<\s*#''?([^\s'']+)''?\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)''\s*>'
     action: block_start_simple_extended
-    description: "Matches simple conditional block starts: --< #key = 'value' > or --< #key != 'value' > or other ops"
 
   - id: 6
+    description: "Line Filter Tags: Matches JSONPath line filters: --#{ $.path.to.key }"
     regex: '--\s*#\{\s*(.*?)\s*\}'
     action: line_filter_jsonpath
-    description: "Line Filter Tags: Matches JSONPath line filters: --#{ $.path.to.key }"
+
   - id: 7
+    description: "Matches simple conditional line filters: --#key = 'value' or other ops"
     regex: '--\s*#''?([^\s'']+)''?\s*(!~~\*|!~\*|!~~|~~\*|!%>|!=|!~|~\*|~~|!%|%>|=|~|%)\s*''([^'']+)'''
     action: line_filter_simple_extended
-    description: "Matches simple conditional line filters: --#key = 'value' or other ops"
+
   - id: 8
-    regex: '#(!?)([\w]+)(?::(!?)([\w]+))?'
-    action: line_filter
     description: "Matches standard line filters: #tag, #!tag, #tag:subtag, #!tag:val, #tag:!val"
+    regex: '#(!?)([\w]+)(?:(:|!:)([^>\s]+))?'
+    action: line_filter
 
   - id: 9
-    regex: '\$1\s*(?:->>|->|#>>|#>|#=|#\^|#@|->&|#&|->\^|->@|->>>|#>>>|->&&|#&&|#>=#|#<=#|#<>#|->##|#>##|->\^\^|->@@|#\^\^|#@@)\s*''([^'']+)'''
-    action: delete
     description: "Postgres Filter: Checks for key existence using various JSON operators. Matches: $1->'key', $1#>>'key', etc."
+    regex: '\$1\s*(?:->>|->|#>>|#>|#=|#\^|#@|->&|#&|->\^|->@|->>>|#>>>|->&&|#&&|#>=#|#<=#|#<>#|->##|#>##|->\^\^|->@@|#\^\^|#@@|->#)\s*''([^'']+)'''
+    action: delete
 
   - id: 10
+    description: "Nested Keys: Matches Postgres Array Syntax for nested line filtering. Matches: $1 #> '{path,to,key}' = 'value'"
     regex: '\$1\s*#>\s*[$>^&@#]*\s*''{([^'']+)}''(?:\s*=\s*''([^'']+)'')?'
     action: line_filter_nested
-    description: "Nested Keys: Matches Postgres Array Syntax for nested line filtering. Matches: $1 #> '{path,to,key}' = 'value'"
 
   - id: 11
+    description: "Replace or Delete: Handles standard SQL parameters and legacy $ prefixes. Matches: :variable_name or $variable_name"
     regex: '\B[\$:]([a-zA-Z_]\w*)'
     action: replace_delete
-    description: "Replace or Delete: Handles standard SQL parameters and legacy $ prefixes. Matches: :variable_name or $variable_name"
 
   - id: 12
+    description: "Replace or Empty: Handles bracketed placeholder syntax. Matches: %variable_name%"
     regex: '%(\w+)%'
     action: replace_empty
-    description: "Replace or Empty: Handles bracketed placeholder syntax. Matches: %variable_name%"
 
 test:
   # Test ID 1: Block Logic
@@ -63,11 +69,22 @@ test:
     input: { "key": true }
     text: |
       --<key
-      KEPT
-      -->key
+      KEPT by exists
+      --key>      
+      --<!key
+      KEPT by not exists
+      --key>      
+      --<key:true
+      KEPT by value is true
+      --key>      
+      --<!key:true
+      KEPT by value is not false
+      --key>
     expected: |
-      KEPT
+      KEPT by exists
+      KEPT by value is true
     passed: true
+
   - id: 1
     subid: 2
     description: "Block Not Exists: Delete block if key exists."
@@ -75,9 +92,10 @@ test:
     text: |
       --<!key
       DELETED
-      -->!key
+      --key>
     expected: ""
     passed: true
+
   - id: 1
     subid: 3
     description: "Block Value: Keep block if key=value."
@@ -89,6 +107,7 @@ test:
     expected: |
       KEPT
     passed: true
+
   - id: 1
     subid: 4
     description: "Block Not Value: Delete block if key=value."
@@ -99,6 +118,21 @@ test:
       DELETED
       --key>
     expected: ""
+    passed: true
+
+  - id: 1
+    subid: 5
+    description: "Block Not Value (Strict): Keep block if key!=value."
+    input: { "key": "val" }
+    text: |
+      --<key!:other
+      KEPT
+      --key>
+      --<key!:val
+      DELETED
+      --key>
+    expected: |
+      KEPT
     passed: true
 
   # Test ID 8: Line Filter Logic
@@ -141,27 +175,55 @@ test:
   # Test ID 9: Postgres Filters
   - id: 9
     subid: 1
-    description: "PG: -> Operator"
+    description: "Postgres Filters: Keep if key exists, delete if missing."
     input: { "key": 1 }
-    text: "SELECT $1->'key'"
-    expected: "SELECT $1->'key'"
+    text: |
+      SELECT $1->'key'
+      SELECT $1#>>'{key}'
+      SELECT $1->'missing'
+    expected: |
+      SELECT $1->'key'
+      SELECT $1#>>'{key}'
     passed: true
-  - id: 9
-    subid: 2
-    description: "PG: #>> Operator"
-    input: { "key": 1 }
-    text: "SELECT $1#>>'key'"
-    expected: "SELECT $1#>>'key'"
+  # Test ID 11: Replace or Delete Logic
+  - id: 11
+    subid: 1
+    description: "Replace or Delete: $var and :var replaced if exists, deleted if missing."
+    input: { "var": "val" }
+    text: |
+      SELECT $var
+      SELECT :var
+      SELECT $missing
+    expected: |
+      SELECT val
+      SELECT val
     passed: true
-  - id: 9
-    subid: 3
-    description: "PG: Missing Key"
-    input: { "other": 1 }
-    text: "SELECT $1->'key'"
-    expected: ""
+
+  - id: 12
+    subid: 1
+    description: "Replace or Empty/Delete: replace the %tag% or :tag or $tag if variable exists, otherwise replace the %tag% to empty string the other tags are line deleted"
+    input: { "key1": "val" }
+    text: |
+      SELECT 'dummy'
+        , concat( 'aaa', '%key1%' )
+        , concat( 'aaa', ':key1' ) 
+        , concat( 'aaa', '$key1' ) 
+      SELECT 'dummy'
+        , concat( 'aaa', '%key2%' )
+        , concat( 'aaa', ':key2' ) 
+        , concat( 'aaa', '$key2' )
+    expected: |
+      SELECT 'dummy'
+        , concat( 'aaa', 'val' )
+        , concat( 'aaa', 'val' ) 
+        , concat( 'aaa', 'val' ) 
+      SELECT 'dummy'
+        , concat( 'aaa', '' )
     passed: true
+
   - id: 13
     subid: 1
+    skip_from_test: true
     description: "All Rules Comprehensive Test"
     input:
       basic:

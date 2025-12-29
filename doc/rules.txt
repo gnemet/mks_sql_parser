@@ -17,6 +17,12 @@ json operators:
         integer array ->^^, #^^
         timestamp array ->@@, #@@
 
+json key format:
+    string key: operator start with "-" + other operators + 'key'
+    for example: $1->'key' or $1->>'key' or $1 #>> '{key1,key2}' or $1 ->@'key' or $1 ->^'key' or $1 ->#'key' or $1 ->&'key' or $1 ->@@'key' or $1 ->&&'key' or $1 ->##'key' or $1 ->^^'key' 
+    nested key: operator start with "#" + other operators + '{key1,key2}'   
+    for example: $1#>> '{key1,key2}' or $1 #>^ '{key1,key2}' 
+
 Key existence in json expression:
     $1{operator}'key' 
         for example: $1->'key' or $1->>'key' or $1 #>> '{key1,key2}' or $1 ->@'key' or $1 ->^'key' or $1 ->#'key' or $1 ->&'key' or $1 ->@@'key' or $1 ->&&'key' or $1 ->##'key' or $1 ->^^'key' 
@@ -112,7 +118,20 @@ jsonpath logic in block:
         select 'EXISTS' as "exists" 
         -->     
 
-        
+replace or empty:
+    %key%
+    if key exists, it replace the tag    
+    if key does not exist, replace the tag to empty string
+    for example:
+        select %key% as key_value_or_empty
+
+ replace or delete:
+    :key, $key
+    if key exists, it replace the tag 
+    if key does not exist, it delete the full line  
+    for example:
+        select :key as key_value_or_delete
+        select $key as key_value_or_delete
     
     
 

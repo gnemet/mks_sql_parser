@@ -13,7 +13,7 @@ func main() {
 	// API Endpoints
 	http.HandleFunc("/process", handleProcess)
 	http.HandleFunc("/tests", handleTests)
-	http.HandleFunc("/patterns", handlePatterns)
+	http.HandleFunc("/rules", handleRules)
 	http.HandleFunc("/doc", handleDoc)
 	http.HandleFunc("/parser_rules.md", handleParserRules)
 	http.HandleFunc("/version", handleVersion)

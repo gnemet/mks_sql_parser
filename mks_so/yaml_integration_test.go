@@ -21,6 +21,9 @@ func TestYamlConfigProcessing(t *testing.T) {
 			if !tt.Passed {
 				t.Skipf("Skipping test ID %d because passed=false", tt.ID)
 			}
+			if tt.SkipFromTest {
+				t.Skipf("Skipping test ID %d because skip_from_test=true", tt.ID)
+			}
 			inputBytes, err := json.Marshal(tt.Input)
 			if err != nil {
 				t.Fatalf("Failed to marshal input: %v", err)
