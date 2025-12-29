@@ -18,7 +18,7 @@ NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
 echo "New version: $NEW_VERSION"
 
 # Get current date
-NEW_DATE=$(date "+%Y-%m-%d %H:%M")
+NEW_DATE=$(date "+%Y-%m-%d %H:%M %Z")
 
 # Update config.yaml in place
 sed -i "s/version: \"$CURRENT_VERSION\"/version: \"$NEW_VERSION\"/" config.yaml

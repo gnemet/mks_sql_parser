@@ -33,7 +33,7 @@ func main() {
 	// We can't change processor.ProcessSql logic easily without editing it.
 	// Actually, I can edit processor.go to add Init(patterns).
 
-	c := make(chan struct{}, 0)
+	c := make(chan struct{})
 
 	js.Global().Set("processSql", js.FuncOf(processSql))
 	js.Global().Set("getRules", js.FuncOf(getRules))
@@ -86,6 +86,9 @@ func getTests(this js.Value, args []js.Value) interface{} {
 }
 
 func getVersion(this js.Value, args []js.Value) interface{} {
-	ver, _ := config.LoadBuildInfo(configBytes)
-	return ver
+	ver, build := config.LoadBuildInfo(configBytes)
+	return map[string]interface{}{
+		"version":    ver,
+		"last_build": build,
+	}
 }
