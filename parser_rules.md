@@ -7,7 +7,7 @@ Blocks allow you to conditionally include or exclude multiple lines of SQL based
 
 **Syntax:**
 - Start: `--<CONDITION`
-- End: `-->` (or `-->TAG`)
+- End: `-->` (or `-->TAG` or `--TAG>`)
 
 **Conditions:**
 | Syntax          | Logic           | Description                                                       |
@@ -15,6 +15,7 @@ Blocks allow you to conditionally include or exclude multiple lines of SQL based
 | `--<key`        | **Exists**      | Block is **kept** if `key` exists in JSON.                        |
 | `--<!key`       | **Not Exists**  | Block is **kept** if `key` does **NOT** exist.                    |
 | `--<key:value`  | **Equals**      | Block is **kept** if `key` exists AND equals `value`.             |
+| `--<!key:value` | **Not Equals**  | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
 | `--<key:!value` | **Not Equals*** | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
 
 *> Note: Strict equality check. If `key` is missing, equivalence checks usually fail (block skipped).*
@@ -27,7 +28,7 @@ Blocks allow you to conditionally include or exclude multiple lines of SQL based
 
 --<!banana
     , 'banana not exists' as "banana" -- Included only if input "banana" is MISSING
---banana>
+-->!banana
 ```
 
 ---
@@ -39,17 +40,20 @@ Line tags allow you to conditionally filter a single line of SQL. Tags are place
 - `... SQL CODE ... -- #CONDITION`
 
 **Conditions:**
-| Syntax       | Logic          | Description                                   |
-| :----------- | :------------- | :-------------------------------------------- |
-| `#key`       | **Exists**     | Line is **kept** if `key` exists.             |
-| `#!key`      | **Not Exists** | Line is **kept** if `key` does **NOT** exist. |
-| `#key:value` | **Equals**     | Line is **kept** if `key` equals `value`.     |
+| Syntax        | Logic          | Description                                           |
+| :------------ | :------------- | :---------------------------------------------------- |
+| `#key`        | **Exists**     | Line is **kept** if `key` exists.                     |
+| `#!key`       | **Not Exists** | Line is **kept** if `key` does **NOT** exist.         |
+| `#key:value`  | **Equals**     | Line is **kept** if `key` equals `value`.             |
+| `#!key:value` | **Not Equals** | Line is **kept** if `key` does **NOT** equal `value`. |
+| `#key:!value` | **Not Equals** | Line is **kept** if `key` does **NOT** equal `value`. |
 
 **Example:**
 ```sql
 , 'longKey'   as "keyCheck"      -- #kulcs   (Kept if "kulcs" exists)
 , true        as "existsAddress" -- #checkAddress:true (Kept if "checkAddress" is "true")
 , false       as "noAddress"     -- #!checkAddress (Kept if "checkAddress" is MISSING)
+, 'notDev'    as "env"           -- #env:!dev (Kept if "env" is NOT "dev")
 ```
 
 ---
@@ -90,19 +94,27 @@ offset :offset
 
 ---
 
-## 4. PostgreSQL JSON Filters (Legacy)
-The parser supports legacy PostgreSQL-style JSON operator checks.
+## 4. PostgreSQL JSON Filters
+The parser supports filtering lines containing standard PostgreSQL JSON operators. Lines matching these patterns will be evaluated against the input JSON.
 
-**Syntax:**
-- `$1->'key'` or `$1->>'key'`
+**Supported Operators:**
+- **Accessors**: `->`, `->>`, `#>`, `#>>`
+- **Existence**: `->&` (key exists), `#&` (path exists)
+- **Comparisons**: `=#`, `#<>#`, `#>=#`, `#<=#` (numeric/string comparisons)
+- **Deep Access**: `->>>`, `#>>>`
+- **Number Access**: `->##`, `#>##`
+- **Pattern Matching**: `->@`, `->@@`, `#@`, `#@@`
 
 **Logic:**
-If the referenced key (e.g., `key` inside `$1->'key'`) is **missing** from the input JSON, the entire line is **deleted**.
+If the referenced key or path is **missing** or the condition evaluates to **false**, the entire line is **deleted**.
 
 **Example:**
 ```sql
-and mk.id = ( $1->>'id' )
--- If "id" is missing in input, this line is commented out (deleted).
+-- Keep if key "id" exists in input
+SELECT * FROM table WHERE id = $1->'id';
+
+-- Keep if "user.name" exists
+SELECT * FROM table WHERE name = $1#>>'{user,name}';
 ```
 
 ---
