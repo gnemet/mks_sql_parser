@@ -31,6 +31,12 @@ cat config.yaml >> cmd/wasm/config.yaml
 # Create static directory if it doesn't exist
 mkdir -p cmd/server/static
 
+# Copy frontend assets
+echo "Copying frontend assets..."
+cp static/index.html cmd/server/static/
+cp static/style.css cmd/server/static/
+cp static/mks_sql_ins_parser.js cmd/server/static/
+
 # Copy wasm_exec.js from Go distribution if not present
 if [ ! -f cmd/server/static/wasm_exec.js ]; then
     # Try common locations or use go env GOROOT
