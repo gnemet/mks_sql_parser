@@ -1,3 +1,5 @@
+> **Version**: 1.0.0024 | **Last Build**: 2025-12-29 18:39
+
 # MKS SQL Parser Rules
 
 This document outlines the syntax and usage of the MKS SQL Parser features implemented in the `mks_sql.so` shared library. The parser processes SQL text using a provided JSON input to conditionally include, exclude, or modify lines of code.
@@ -16,7 +18,8 @@ Blocks allow you to conditionally include or exclude multiple lines of SQL based
 | `--<!key`       | **Not Exists**  | Block is **kept** if `key` does **NOT** exist.                    |
 | `--<key:value`  | **Equals**      | Block is **kept** if `key` exists AND equals `value`.             |
 | `--<!key:value` | **Not Equals**  | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
-| `--<key:!value` | **Not Equals*** | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
+| `--<key!:value` | **Not Equals*** | Block is **kept** if `key` exists AND does **NOT** equal `value`. |
+|                 |                 | *Strict: If key missing, `!:` considers it not equal (kept).*     |
 
 *> Note: Strict equality check. If `key` is missing, equivalence checks usually fail (block skipped).*
 
@@ -103,7 +106,7 @@ The parser supports filtering lines containing standard PostgreSQL JSON operator
 - **Comparisons**: `=#`, `#<>#`, `#>=#`, `#<=#` (numeric/string comparisons)
 - **Deep Access**: `->>>`, `#>>>`
 - **Number Access**: `->##`, `#>##`
-- **Pattern Matching**: `->@`, `->@@`, `#@`, `#@@`
+- **Pattern Matching**: `->@`, `->@@`, `#@`, `#@@`, `->#`
 
 **Logic:**
 If the referenced key or path is **missing** or the condition evaluates to **false**, the entire line is **deleted**.

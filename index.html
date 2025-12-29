@@ -217,20 +217,20 @@
         });
 
         function initializeDataFromWasm() {
-            // Wasm functions: getPatterns(), getTests() return JSON strings
-            if (typeof getPatterns !== 'function') {
+            // Wasm functions: getRules(), getTests() return JSON strings
+            if (typeof getRules !== 'function') {
                 setTimeout(initializeDataFromWasm, 100);
                 return;
             }
 
             try {
-                const patterns = JSON.parse(getPatterns());
+                const rules = JSON.parse(getRules());
                 const tests = JSON.parse(getTests());
                 // Version might be string or need parsing? It's just a string.
                 if (typeof getVersion === 'function') {
                     document.getElementById('app-version').textContent = getVersion();
                 }
-                setupUI(tests, patterns);
+                setupUI(tests, rules);
             } catch (e) {
                 console.error("Error loading data from Wasm:", e);
             }
@@ -239,9 +239,9 @@
         function initializeDataFromFetch() {
             Promise.all([
                 fetch('/tests').then(r => r.json()),
-                fetch('/patterns').then(r => r.json()),
+                fetch('/rules').then(r => r.json()),
                 fetch('/version').then(r => r.json())
-            ]).then(([tests, patterns, verInfo]) => {
+            ]).then(([tests, rules, verInfo]) => {
                 if (verInfo && verInfo.version) {
                     const verEl = document.getElementById('app-version');
                     verEl.textContent = "Version: " + verInfo.version;
@@ -252,22 +252,22 @@
                 } else {
                     document.getElementById('app-version').textContent = "1.0.0 (Server)";
                 }
-                setupUI(tests, patterns);
+                setupUI(tests, rules);
             }).catch(e => console.error("Fetch failed:", e));
         }
 
         // Set Year
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        function setupUI(tests, patterns) {
+        function setupUI(tests, rules) {
             const select = document.getElementById('test-chooser');
             window.tests = tests; // Store globally
-            window.patterns = patterns; // Store globally
+            window.rules = rules; // Store globally
 
-            // Create Pattern Lookup Map
-            const patternMap = {};
-            patterns.forEach(p => {
-                patternMap[p.id] = p.description;
+            // Create Rule Lookup Map
+            const ruleMap = {};
+            rules.forEach(p => {
+                ruleMap[p.id] = p.description;
             });
 
             // Sort tests by ID ascending
@@ -280,11 +280,11 @@
                 const opt = document.createElement('option');
                 opt.value = index;
 
-                let desc = "Unknown Pattern";
+                let desc = "Unknown Rule";
                 if (test.description && test.description.length > 0) {
                     desc = test.description;
-                } else if (patternMap[test.id]) {
-                    desc = patternMap[test.id];
+                } else if (ruleMap[test.id]) {
+                    desc = ruleMap[test.id];
                 }
 
                 if (desc.length > 120) desc = desc.substring(0, 117) + "...";
