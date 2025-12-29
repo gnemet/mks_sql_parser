@@ -14,7 +14,7 @@ func main() {
 	http.HandleFunc("/process", handleProcess)
 	http.HandleFunc("/tests", handleTests)
 	http.HandleFunc("/rules", handleRules)
-	http.HandleFunc("/doc", handleDoc)
+	http.HandleFunc("/reference_guide.md", handleDoc)
 	http.HandleFunc("/parser_rules.md", handleParserRules)
 	http.HandleFunc("/version", handleVersion)
 

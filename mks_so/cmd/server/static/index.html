@@ -301,7 +301,7 @@
         // Does 'static' contain 'doc'? No.
         // We need to copy 'doc' folder to 'static' in the build script!
 
-        const docBaseUrl = wasmReady || window.location.hostname.includes("github.io") ? "" : "/doc";
+        const docBaseUrl = "";
 
         function loadDoc(filename) {
             const url = (docBaseUrl && !filename.includes('/') ? docBaseUrl + '/' : '') + filename;
