@@ -92,6 +92,7 @@ type TestCase struct {
 	Input        map[string]interface{} `mapstructure:"input" json:"input"`
 	Text         string                 `mapstructure:"text" json:"text"`
 	Expected     string                 `mapstructure:"expected" json:"expected"`
+	CsvExpected  string                 `mapstructure:"csv_expected" json:"csv_expected"`
 	Passed       bool                   `mapstructure:"passed" json:"passed"`
 	SkipFromTest bool                   `mapstructure:"skip_from_test" json:"skip_from_test"`
 }
@@ -146,5 +147,123 @@ func LoadBuildInfo(configBytes []byte) (string, string) {
 		}
 	}
 
-	return viper.GetString("version"), viper.GetString("last_build")
+	return viper.GetString("application.version"), viper.GetString("application.last_build")
+}
+
+type AppConfig struct {
+	Name               string `mapstructure:"name"`
+	Version            string `mapstructure:"version"`
+	LastBuild          string `mapstructure:"last_build"`
+	Host               string `mapstructure:"host"`
+	Port               int    `mapstructure:"port"`
+	ReferenceDocPath   string `mapstructure:"reference_doc_path"`
+	ParserRulesDocPath string `mapstructure:"parser_rules_doc_path"`
+	SqlExecuteMode     string `mapstructure:"sql_execute_mode"`
+}
+
+func LoadAppConfig(configBytes []byte) AppConfig {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+
+	if configBytes != nil {
+		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
+			return AppConfig{}
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("../..")
+		viper.AddConfigPath("../../..")
+		if err := viper.ReadInConfig(); err != nil {
+			return AppConfig{}
+		}
+	}
+
+	var app AppConfig
+	err := viper.UnmarshalKey("application", &app)
+	if err != nil {
+		fmt.Printf("Error unmarshalling application config: %v\n", err)
+	}
+	if app.SqlExecuteMode == "" {
+		app.SqlExecuteMode = "EXECUTE"
+	}
+	return app
+}
+
+type DatabaseConfig struct {
+	Name     string `mapstructure:"name" json:"name"`
+	Host     string `mapstructure:"host" json:"host"`
+	Port     string `mapstructure:"port" json:"port"`
+	User     string `mapstructure:"user" json:"user"`
+	Password string `mapstructure:"password" json:"password"`
+	Database string `mapstructure:"database" json:"database"`
+	Schema   string `mapstructure:"schema" json:"schema"`
+}
+
+func LoadDatabaseConfigs(configBytes []byte) []DatabaseConfig {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+
+	if configBytes != nil {
+		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
+			return nil
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("../..")
+		viper.AddConfigPath("../../..")
+		if err := viper.ReadInConfig(); err != nil {
+			return nil
+		}
+	}
+
+	var dbs []DatabaseConfig
+	err := viper.UnmarshalKey("databases", &dbs)
+	if err != nil {
+		fmt.Printf("Error unmarshalling databases config: %v\n", err)
+	}
+	return dbs
+}
+
+type CSVConfig struct {
+	Format    string `mapstructure:"format"`
+	Header    bool   `mapstructure:"header"`
+	Delimiter string `mapstructure:"delimiter"`
+	Null      string `mapstructure:"null"`
+	Encoding  string `mapstructure:"encoding"`
+	Quote     string `mapstructure:"quote"`
+}
+
+func LoadCSVConfig(configBytes []byte) CSVConfig {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+
+	if configBytes != nil {
+		if err := viper.ReadConfig(bytes.NewBuffer(configBytes)); err != nil {
+			return CSVConfig{}
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("../..")
+		viper.AddConfigPath("../../..")
+		if err := viper.ReadInConfig(); err != nil {
+			return CSVConfig{
+				Format:    "CSV",
+				Header:    true,
+				Delimiter: ";",
+				Null:      "N/A",
+				Encoding:  "UTF8",
+				Quote:     "\"",
+			} // Fallback defaults
+		}
+	}
+
+	var csv CSVConfig
+	err := viper.UnmarshalKey("copy.csv", &csv)
+	if err != nil {
+		fmt.Printf("Error unmarshalling copy.csv config: %v\n", err)
+	}
+	return csv
 }

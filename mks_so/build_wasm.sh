@@ -2,7 +2,7 @@
 set -e
 
 # Extract current version
-CURRENT_VERSION=$(grep 'version:' config.yaml | sed 's/version: "\(.*\)"/\1/')
+CURRENT_VERSION=$(grep 'version:' config.yaml | head -n 1 | sed 's/version: "\(.*\)"/\1/' | xargs)
 echo "Current version: $CURRENT_VERSION"
 
 # Split version into parts
@@ -25,8 +25,11 @@ sed -i "s/version: \"$CURRENT_VERSION\"/version: \"$NEW_VERSION\"/" config.yaml
 sed -i "s/last_build: \".*\"/last_build: \"$NEW_DATE\"/" config.yaml
 
 # Copy config.yaml to cmd/wasm for embedding
+echo "Generating cmd/wasm/config.yaml..."
+[ -f cmd/wasm/config.yaml ] && chmod +w cmd/wasm/config.yaml
 echo "# WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE." > cmd/wasm/config.yaml
 cat config.yaml >> cmd/wasm/config.yaml
+chmod 444 cmd/wasm/config.yaml
 
 # Create static directory if it doesn't exist
 mkdir -p cmd/server/static
@@ -41,6 +44,7 @@ copy_with_warning() {
     local comment_style=$3 # "html" or "slash"
     
     echo "Copying $src to $dest..."
+    [ -f "$dest" ] && chmod +w "$dest"
     case $comment_style in
         html)
             echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$dest"
@@ -58,6 +62,7 @@ copy_with_warning() {
             cp "$src" "$dest"
             ;;
     esac
+    chmod 444 "$dest"
 }
 
 copy_with_warning "static/index.html" "cmd/server/static/index.html" "html"
@@ -81,7 +86,9 @@ fi
 
 # Build Wasm binary
 echo "Building Wasm..."
+[ -f cmd/server/static/mks.wasm ] && chmod +w cmd/server/static/mks.wasm
 GOOS=js GOARCH=wasm go build -o cmd/server/static/mks.wasm cmd/wasm/main.go
+chmod 444 cmd/server/static/mks.wasm
 
 # Copy documentation to static folder for GitHub Pages
 echo "Copying documentation..."
@@ -89,27 +96,37 @@ mkdir -p cmd/server/static/doc
 for f in ../doc/*; do
     if [ -f "$f" ]; then
         fname=$(basename "$f")
+        dest="cmd/server/static/doc/$fname"
+        [ -f "$dest" ] && chmod +w "$dest"
         case "$fname" in
             *.md)
-                echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "cmd/server/static/doc/$fname"
-                cat "$f" >> "cmd/server/static/doc/$fname"
+                echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$dest"
+                cat "$f" >> "$dest"
                 ;;
             *)
-                cp "$f" "cmd/server/static/doc/$fname"
+                cp "$f" "$dest"
                 ;;
         esac
+        chmod 444 "$dest"
     fi
 done
 
 # Also copy reference_guide.md and parser_rules.md to the root for compatibility
+[ -f cmd/server/static/reference_guide.md ] && chmod +w cmd/server/static/reference_guide.md
 echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/reference_guide.md
 cat ../doc/reference_guide.md >> cmd/server/static/reference_guide.md
+chmod 444 cmd/server/static/reference_guide.md
 
+[ -f cmd/server/static/parser_rules.md ] && chmod +w cmd/server/static/parser_rules.md
 echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/parser_rules.md
 cat ../doc/parser_rules.md >> cmd/server/static/parser_rules.md
 
 # Update version and date in the copied parser_rules.md (both root and doc/)
 sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/parser_rules.md
+chmod 444 cmd/server/static/parser_rules.md
+
+[ -f cmd/server/static/doc/parser_rules.md ] && chmod +w cmd/server/static/doc/parser_rules.md
 sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/doc/parser_rules.md
+chmod 444 cmd/server/static/doc/parser_rules.md
 
 echo "Wasm build and asset copy complete."

@@ -1,192 +1,490 @@
 <!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MKS SQL Parser Tester</title>
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <!-- Marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Highlight.js -->
-    <link rel="stylesheet" id="hljs-theme"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link
+      rel="stylesheet"
+      id="hljs-theme"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
 
-    <link rel="stylesheet" href="style.css">
-</head>
+    <link rel="stylesheet" href="style.css" />
+  </head>
 
-<body class="light-mode">
+  <body class="light-mode">
     <header>
-        <div class="header-left">
-            <h1><i class="fas fa-database"></i> MKS SQL Parser Tester</h1>
+      <div class="header-left">
+        <h1><i class="fas fa-database"></i> MKS SQL Parser Tester</h1>
+      </div>
+      <div class="header-center">
+        <div class="db-connection-group">
+          <select id="db-chooser" onchange="connectToPredefined(this.value)">
+            <option value="">DB Connection...</option>
+            <option value="manual">Manual Connection...</option>
+            <!-- Options populated by JS -->
+          </select>
+          <button
+            id="db-disconnect"
+            class="icon-btn danger-btn hidden"
+            onclick="disconnectDB()"
+            title="Disconnect from Database"
+          >
+            <i class="fas fa-plug-circle-xmark"></i>
+          </button>
         </div>
-        <div class="header-center">
-            <select id="test-chooser" name="testId" onchange="loadTest(this.value)">
-                <option value="">Select a Test Case...</option>
-                <!-- Options populated by JS -->
-            </select>
-        </div>
-        <div class="header-right">
-            <button id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-                <i class="fas fa-moon"></i>
-            </button>
-            <button id="doc-toggle" onclick="toggleDoc()" title="Show Reference Guide">
-                <i class="fas fa-book"></i>
-            </button>
-            <button id="help-toggle" onclick="toggleHelp()" title="How to use">
-                <i class="fas fa-question-circle"></i>
-            </button>
-        </div>
+        <select id="test-chooser" name="testId" onchange="loadTest(this.value)">
+          <option value="">Select a Test Case...</option>
+          <!-- Options populated by JS -->
+        </select>
+      </div>
+      <div class="header-right">
+        <button
+          id="theme-toggle"
+          class="icon-btn"
+          onclick="toggleTheme()"
+          title="Toggle Dark/Light Mode"
+        >
+          <i class="fas fa-moon"></i>
+        </button>
+        <button
+          id="doc-toggle"
+          class="icon-btn"
+          onclick="toggleDoc()"
+          title="Show Reference Guide"
+        >
+          <i class="fas fa-book"></i>
+        </button>
+        <button
+          id="help-toggle"
+          class="icon-btn"
+          onclick="toggleHelp()"
+          title="How to use"
+        >
+          <i class="fas fa-question-circle"></i>
+        </button>
+      </div>
     </header>
 
     <main class="container" id="main-container">
+      <div class="main-row" id="main-row">
         <div class="left-column" id="left-col">
-            <div class="editor-pane sql-pane" id="pane-sql">
-                <div class="pane-header">
-                    <label>
-                        <button class="icon-btn fold-btn" onclick="toggleFold('pane-sql')" title="Minimize"><i
-                                class="fas fa-minus"></i></button>
-                        <i class="fas fa-code"></i> SQL Text
-                    </label>
-                    <div class="pane-actions">
-                        <input type="file" id="upload-sql" accept=".sql,.txt" style="display:none"
-                            onchange="loadFile(this, 'sql-text')">
-                        <button class="icon-btn" onclick="document.getElementById('upload-sql').click()"
-                            title="Upload File">
-                            <i class="fas fa-upload"></i>
-                        </button>
-                        <button class="icon-btn" onclick="copyToClipboard('sql-text')" title="Copy to Clipboard">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                <textarea id="sql-text" name="sql" spellcheck="false"
-                    placeholder="Enter SQL here or drag & drop a file..." oninput="saveState()"></textarea>
+          <div class="editor-pane sql-pane" id="pane-sql">
+            <div class="pane-header">
+              <label>
+                <button
+                  class="icon-btn fold-btn"
+                  onclick="toggleFold('pane-sql')"
+                  title="Minimize"
+                >
+                  <i class="fas fa-minus"></i>
+                </button>
+                <i class="fas fa-code"></i> SQL Text
+              </label>
+              <div class="pane-actions">
+                <input
+                  type="file"
+                  id="upload-sql"
+                  accept=".sql,.txt"
+                  style="display: none"
+                  onchange="loadFile(this, 'sql-text')"
+                />
+                <button
+                  class="icon-btn"
+                  onclick="document.getElementById('upload-sql').click()"
+                  title="Upload File"
+                >
+                  <i class="fas fa-upload"></i>
+                </button>
+                <button
+                  class="icon-btn"
+                  onclick="copyToClipboard('sql-text')"
+                  title="Copy to Clipboard"
+                >
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
             </div>
+            <div id="sql-editor" class="ace-editor-container"></div>
+            <textarea
+              id="sql-text"
+              name="sql"
+              spellcheck="false"
+              class="hidden"
+              placeholder="Enter SQL here or drag & drop a file..."
+              oninput="saveState()"
+            ></textarea>
+          </div>
 
-            <div class="gutter gutter-horizontal" id="gutter-h"></div>
+          <div class="gutter gutter-horizontal" id="gutter-h"></div>
 
-            <div class="editor-pane json-pane" id="pane-json">
-                <div class="pane-header">
-                    <label>
-                        <button class="icon-btn fold-btn" onclick="toggleFold('pane-json')" title="Minimize"><i
-                                class="fas fa-minus"></i></button>
-                        <i class="fas fa-file-code"></i> Input JSON
-                    </label>
-                    <div class="pane-actions">
-                        <input type="file" id="upload-json" accept=".json,.txt" style="display:none"
-                            onchange="loadFile(this, 'json-input')">
-                        <button class="icon-btn" onclick="document.getElementById('upload-json').click()"
-                            title="Upload File">
-                            <i class="fas fa-upload"></i>
-                        </button>
-                        <button class="icon-btn" onclick="copyToClipboard('json-input')" title="Copy to Clipboard">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                <textarea id="json-input" name="input" spellcheck="false" placeholder='{"key": "value"}'
-                    oninput="validateJSON(); saveState()"></textarea>
+          <div class="editor-pane json-pane" id="pane-json">
+            <div class="pane-header">
+              <label>
+                <button
+                  class="icon-btn fold-btn"
+                  onclick="toggleFold('pane-json')"
+                  title="Minimize"
+                >
+                  <i class="fas fa-minus"></i>
+                </button>
+                <i class="fas fa-file-code"></i> Input JSON
+              </label>
+              <div class="pane-actions">
+                <input
+                  type="file"
+                  id="upload-json"
+                  accept=".json,.txt"
+                  style="display: none"
+                  onchange="loadFile(this, 'json-input')"
+                />
+                <button
+                  class="icon-btn"
+                  onclick="document.getElementById('upload-json').click()"
+                  title="Upload File"
+                >
+                  <i class="fas fa-upload"></i>
+                </button>
+                <button
+                  class="icon-btn"
+                  onclick="copyToClipboard('json-input')"
+                  title="Copy to Clipboard"
+                >
+                  <i class="fas fa-copy"></i>
+                </button>
+                <button
+                  class="icon-btn"
+                  onclick="formatJson()"
+                  title="Format JSON"
+                >
+                  <i class="fas fa-indent"></i>
+                </button>
+              </div>
             </div>
+            <div id="json-editor" class="ace-editor-container"></div>
+            <textarea
+              id="json-input"
+              name="input"
+              spellcheck="false"
+              class="hidden"
+              placeholder='{"key": "value"}'
+              oninput="validateJSON(); saveState()"
+            ></textarea>
+          </div>
         </div>
 
         <div class="gutter gutter-vertical" id="gutter-v"></div>
 
-        <div class="editor-pane result-pane" id="pane-result">
+        <div class="right-column" id="right-col">
+          <div class="editor-pane result-pane" id="pane-result">
             <div class="pane-header">
-                <label>
-                    <button class="icon-btn fold-btn" onclick="toggleFold('pane-result')" title="Minimize"><i
-                            class="fas fa-minus"></i></button>
-                    <i class="fas fa-terminal"></i> Result
-                </label>
-                <div class="pane-actions">
-                    <button class="icon-btn" id="minify-btn" onclick="toggleMinify()"
-                        title="Toggle Minified Output (Strip Comments)">
-                        <i class="fas fa-compress-arrows-alt"></i>
-                    </button>
-                    <button class="icon-btn" onclick="downloadResult()" title="Save Result">
-                        <i class="fas fa-download"></i>
-                    </button>
-                    <button class="icon-btn" onclick="copyToClipboard('result-output')" title="Copy to Clipboard">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="run-btn" onclick="runProcess()">
-                        <i class="fas fa-play"></i> Run
-                    </button>
-                </div>
+              <label>
+                <button
+                  class="icon-btn fold-btn"
+                  onclick="toggleFold('pane-result')"
+                  title="Minimize"
+                >
+                  <i class="fas fa-minus"></i>
+                </button>
+                <i class="fas fa-terminal"></i> MKS Result
+              </label>
+              <div class="pane-actions">
+                <button
+                  class="icon-btn"
+                  id="minify-btn"
+                  onclick="toggleMinify()"
+                  title="Toggle Minified Output (Strip Comments)"
+                >
+                  <i class="fas fa-compress-arrows-alt"></i>
+                </button>
+                <button
+                  class="icon-btn"
+                  onclick="downloadResult()"
+                  title="Save Result"
+                >
+                  <i class="fas fa-download"></i>
+                </button>
+                <button
+                  class="icon-btn"
+                  onclick="copyToClipboard('result-output')"
+                  title="Copy to Clipboard"
+                >
+                  <i class="fas fa-copy"></i>
+                </button>
+                <button class="run-btn" onclick="runProcess()">
+                  <i class="fas fa-play"></i> Run
+                </button>
+                <button
+                  class="run-btn success-btn hidden"
+                  id="run-query-btn"
+                  onclick="runProcessAndQuery()"
+                >
+                  <i class="fas fa-database"></i> Run & Query
+                </button>
+              </div>
             </div>
             <div id="result-output" class="output-area"></div>
+          </div>
+
+          <div class="gutter gutter-horizontal hidden" id="gutter-h2"></div>
+
+          <div class="editor-pane sql-result-pane hidden" id="pane-sql-result">
+            <div class="pane-header">
+              <label>
+                <button
+                  class="icon-btn fold-btn"
+                  onclick="toggleFold('pane-sql-result')"
+                  title="Minimize"
+                >
+                  <i class="fas fa-minus"></i>
+                </button>
+                <i class="fas fa-table"></i> SQL Result
+              </label>
+              <div class="pane-actions">
+                <span id="query-status" class="status-indicator"></span>
+                <button
+                  class="icon-btn"
+                  onclick="copyTableToClipboard()"
+                  title="Copy Table"
+                >
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="table-container" id="sql-table-container">
+              <table id="sql-result-table">
+                <thead id="sql-table-head"></thead>
+                <tbody id="sql-table-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="gutter gutter-horizontal hidden" id="gutter-logs"></div>
+
+      <div class="editor-pane log-pane hidden" id="pane-logs">
+        <div class="pane-header">
+          <label>
+            <button
+              class="icon-btn fold-btn"
+              onclick="toggleFold('pane-logs')"
+              title="Minimize"
+            >
+              <i class="fas fa-minus"></i>
+            </button>
+            <i class="fas fa-list"></i> SQL Log
+          </label>
+          <div class="pane-actions">
+            <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button
+              class="icon-btn"
+              onclick="copyToClipboard('log-output')"
+              title="Copy to Clipboard"
+            >
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        <div id="log-output" class="output-area"></div>
+      </div>
     </main>
 
     <div id="doc-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="toggleDoc()">&times;</span>
-            <h2>Reference Guide</h2>
-            <div id="doc-content" class="markdown-body">
-                Loading documentation...
-            </div>
+      <div class="modal-content">
+        <span class="close-modal" onclick="toggleDoc()">&times;</span>
+        <h2>Reference Guide</h2>
+        <div id="doc-content" class="markdown-body">
+          Loading documentation...
         </div>
+      </div>
     </div>
 
     <div id="help-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="toggleHelp()">&times;</span>
-            <h2>How to use the Tester</h2>
-            <div class="markdown-body">
-                <ol>
-                    <li><strong>Select a Test Case</strong>: Use the dropdown in the header to load pre-configured
-                        examples. This populates both SQL and JSON Editors.</li>
-                    <li><strong>Edit Code</strong>:
-                        <ul>
-                            <li><strong>SQL Text</strong>: Write your SQL query with MKS Parser syntax (e.g.,
-                                <code>--&lt;condition</code> blocks).
-                            </li>
-                            <li><strong>Input JSON</strong>: Define the variables/context for the parser.</li>
-                        </ul>
-                    </li>
-                    <li><strong>Run Parser</strong>: Click the <strong><i class="fas fa-play"></i> Run</strong> button
-                        (or valid Test Case load) to process the SQL.</li>
-                    <li><strong>View Results</strong>: The <strong>Result</strong> pane shows the final SQL after
-                        processing.</li>
-                </ol>
-                <h3>Features</h3>
-                <ul>
-                    <li><strong>Drag & Drop</strong>: Drag <code>.sql</code> or <code>.json</code> files directly into
-                        the editors.</li>
-                    <li><strong>Upload/Download</strong>: Use the <i class="fas fa-upload"></i> buttons to load files
-                        and <i class="fas fa-download"></i> to save the result.</li>
-                    <li><strong>Auto-Validation</strong>: The JSON editor warns you if your JSON is invalid.</li>
-                    <li><strong>Docs</strong>: Click the <i class="fas fa-book"></i> icon for the full syntax reference.
-                    </li>
-                </ul>
-            </div>
+      <div class="modal-content">
+        <span class="close-modal" onclick="toggleHelp()">&times;</span>
+        <h2>How to use the Tester</h2>
+        <div class="markdown-body">
+          <ol>
+            <li>
+              <strong>Select a Test Case</strong>: Use the dropdown in the
+              header to load pre-configured examples. This populates both SQL
+              and JSON Editors.
+            </li>
+            <li>
+              <strong>Edit Code</strong>:
+              <ul>
+                <li>
+                  <strong>SQL Text</strong>: Write your SQL query with MKS
+                  Parser syntax (e.g., <code>--&lt;condition</code> blocks).
+                </li>
+                <li>
+                  <strong>Input JSON</strong>: Define the variables/context for
+                  the parser.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>Run Parser</strong>: Click the
+              <strong><i class="fas fa-play"></i> Run</strong> button (or valid
+              Test Case load) to process the SQL.
+            </li>
+            <li>
+              <strong>View Results</strong>: The <strong>Result</strong> pane
+              shows the final SQL after processing.
+            </li>
+          </ol>
+          <h3>Features</h3>
+          <ul>
+            <li>
+              <strong>Drag & Drop</strong>: Drag <code>.sql</code> or
+              <code>.json</code> files directly into the editors.
+            </li>
+            <li>
+              <strong>Upload/Download</strong>: Use the
+              <i class="fas fa-upload"></i> buttons to load files and
+              <i class="fas fa-download"></i> to save the result.
+            </li>
+            <li>
+              <strong>Auto-Validation</strong>: The JSON editor warns you if
+              your JSON is invalid.
+            </li>
+            <li>
+              <strong>Docs</strong>: Click the <i class="fas fa-book"></i> icon
+              for the full syntax reference.
+            </li>
+          </ul>
         </div>
+      </div>
+    </div>
+
+    <div id="db-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal" onclick="toggleDBModal()">&times;</span>
+        <h2><i class="fas fa-database"></i> Database Connection</h2>
+        <form id="db-form" onsubmit="connectManual(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="db-host">Host</label>
+              <input
+                type="text"
+                id="db-host"
+                placeholder="localhost"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="db-port">Port</label>
+              <input type="text" id="db-port" placeholder="5432" required />
+            </div>
+            <div class="form-group">
+              <label for="db-user">User</label>
+              <input type="text" id="db-user" placeholder="postgres" required />
+            </div>
+            <div class="form-group">
+              <label for="db-pass">Password</label>
+              <input type="password" id="db-pass" placeholder="password" />
+            </div>
+            <div class="form-group">
+              <label for="db-name">Database</label>
+              <input type="text" id="db-name" placeholder="postgres" required />
+            </div>
+            <div class="form-group">
+              <label for="db-schema">Schema</label>
+              <input
+                type="text"
+                id="db-schema"
+                placeholder="public"
+                value="public"
+              />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="run-btn">Connect</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- About Footer -->
     <footer class="app-footer">
-        <div class="footer-content">
-            <span>&copy; <span id="year"></span> Gabor Nemet</span>
-            <span class="separator">|</span>
-            <span>Version: <span id="app-version">Loading...</span></span>
-            <span class="separator">|</span>
-            <span id="build-info-container" style="display:none">Built: <span id="app-build-time"></span> <span
-                    class="separator">|</span></span>
-            <a href="https://github.com/gnemet/mks_sql_parser" target="_blank" title="View Source on GitHub">
-                <i class="fab fa-github"></i> GitHub
-            </a>
-        </div>
+      <div class="footer-content">
+        <span>&copy; <span id="year"></span> Gabor Nemet</span>
+        <span class="separator">|</span>
+        <span>Version: <span id="app-version">Loading...</span></span>
+        <span class="separator">|</span>
+        <span id="build-info-container" style="display: none"
+          >Built: <span id="app-build-time"></span>
+          <span class="separator">|</span></span
+        >
+        <a
+          href="https://github.com/gnemet/mks_sql_parser"
+          target="_blank"
+          title="View Source on GitHub"
+        >
+          <i class="fab fa-github"></i> GitHub
+        </a>
+      </div>
     </footer>
 
     <script src="wasm_exec.js"></script>
     <script src="mks_sql_ins_parser.js"></script>
     <script src="app.js"></script>
-</body>
-
+  </body>
 </html>
