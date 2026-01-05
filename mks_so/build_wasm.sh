@@ -33,9 +33,37 @@ mkdir -p cmd/server/static
 
 # Copy frontend assets
 echo "Copying frontend assets..."
-cp static/index.html cmd/server/static/
-cp static/style.css cmd/server/static/
-cp static/mks_sql_ins_parser.js cmd/server/static/
+
+# Helper to copy and add warning
+copy_with_warning() {
+    local src=$1
+    local dest=$2
+    local comment_style=$3 # "html" or "slash"
+    
+    echo "Copying $src to $dest..."
+    case $comment_style in
+        html)
+            echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$dest"
+            cat "$src" >> "$dest"
+            ;;
+        slash)
+            echo "// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE." > "$dest"
+            cat "$src" >> "$dest"
+            ;;
+        hash)
+            echo "# WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE." > "$dest"
+            cat "$src" >> "$dest"
+            ;;
+        *)
+            cp "$src" "$dest"
+            ;;
+    esac
+}
+
+copy_with_warning "static/index.html" "cmd/server/static/index.html" "html"
+copy_with_warning "static/style.css" "cmd/server/static/style.css" "slash"
+copy_with_warning "static/mks_sql_ins_parser.js" "cmd/server/static/mks_sql_ins_parser.js" "slash"
+copy_with_warning "static/app.js" "cmd/server/static/app.js" "slash"
 
 # Copy wasm_exec.js from Go distribution if not present
 if [ ! -f cmd/server/static/wasm_exec.js ]; then
@@ -57,12 +85,31 @@ GOOS=js GOARCH=wasm go build -o cmd/server/static/mks.wasm cmd/wasm/main.go
 
 # Copy documentation to static folder for GitHub Pages
 echo "Copying documentation..."
-cp -r ../doc/reference_guide.md cmd/server/static/reference_guide.md
-# Also copy parser_rules if needed
-# Also copy parser_rules if needed
-cp ../doc/parser_rules.md cmd/server/static/parser_rules.md
+mkdir -p cmd/server/static/doc
+for f in ../doc/*; do
+    if [ -f "$f" ]; then
+        fname=$(basename "$f")
+        case "$fname" in
+            *.md)
+                echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "cmd/server/static/doc/$fname"
+                cat "$f" >> "cmd/server/static/doc/$fname"
+                ;;
+            *)
+                cp "$f" "cmd/server/static/doc/$fname"
+                ;;
+        esac
+    fi
+done
 
-# Update version and date in the copied parser_rules.md
+# Also copy reference_guide.md and parser_rules.md to the root for compatibility
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/reference_guide.md
+cat ../doc/reference_guide.md >> cmd/server/static/reference_guide.md
+
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/parser_rules.md
+cat ../doc/parser_rules.md >> cmd/server/static/parser_rules.md
+
+# Update version and date in the copied parser_rules.md (both root and doc/)
 sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/parser_rules.md
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/doc/parser_rules.md
 
 echo "Wasm build and asset copy complete."
