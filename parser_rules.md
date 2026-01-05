@@ -1,4 +1,5 @@
-> **Version**: 1.0.0040 | **Last Build**: 2025-12-30 09:58 UTC
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
+> **Version**: 1.0.0041 | **Last Build**: 2026-01-05 10:55 UTC
 
 # MKS SQL Parser Rules
 

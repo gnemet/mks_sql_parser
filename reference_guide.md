@@ -1,3 +1,4 @@
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
 # MKS SQL Parser Reference Guide
 
 ## 1. Introduction
