@@ -6,7 +6,9 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write
+    contents: read
+    pages: write
+    id-token: write
 
 jobs:
     build-and-deploy:
@@ -21,14 +23,18 @@ jobs:
                   go-version: "1.25"
                   cache-dependency-path: mks_so/go.sum
 
-            - name: Build Wasm
+            - name: Build Wasm and Prepare Artifact
               run: |
                   cd mks_so
                   chmod +x build_wasm.sh
-                  ./build_wasm.sh
+                  mkdir -p ../dist
+                  ./build_wasm.sh ../dist
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: dist
 
             - name: Deploy to GitHub Pages
-              uses: JamesIves/github-pages-deploy-action@v4
-              with:
-                  folder: mks_so/cmd/server/static
-                  branch: gh-pages
+              id: deployment
+              uses: actions/deploy-pages@v4

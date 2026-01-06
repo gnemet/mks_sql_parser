@@ -17,3 +17,8 @@ debug_output*.txt
 
 # OS
 .DS_Store
+
+# Generated files
+mks_so/cmd/server/static/mks.wasm
+mks_so/cmd/server/static/wasm_exec.js
+mks_so/cmd/wasm/config.yaml

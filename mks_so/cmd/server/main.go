@@ -19,7 +19,7 @@ func main() {
 	}
 
 	// Serve static files
-	fs := http.FileServer(http.Dir("./static"))
+	fs := http.FileServer(http.Dir("./cmd/server/static"))
 	http.Handle("/", fs)
 
 	// API Endpoints
