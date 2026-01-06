@@ -87,8 +87,16 @@ func getTests(this js.Value, args []js.Value) interface{} {
 
 func getVersion(this js.Value, args []js.Value) interface{} {
 	ver, build := config.LoadBuildInfo(configBytes)
+	appCfg := config.LoadAppConfig(configBytes)
+
+	limits := make([]interface{}, len(appCfg.SqlLimits))
+	for i, v := range appCfg.SqlLimits {
+		limits[i] = v
+	}
+
 	return map[string]interface{}{
 		"version":    ver,
 		"last_build": build,
+		"sql_limits": limits,
 	}
 }

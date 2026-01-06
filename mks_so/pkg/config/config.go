@@ -159,6 +159,7 @@ type AppConfig struct {
 	ReferenceDocPath   string `mapstructure:"reference_doc_path"`
 	ParserRulesDocPath string `mapstructure:"parser_rules_doc_path"`
 	SqlExecuteMode     string `mapstructure:"sql_execute_mode"`
+	SqlLimits          []int  `mapstructure:"sql_limits"`
 }
 
 func LoadAppConfig(configBytes []byte) AppConfig {
@@ -186,6 +187,9 @@ func LoadAppConfig(configBytes []byte) AppConfig {
 	}
 	if app.SqlExecuteMode == "" {
 		app.SqlExecuteMode = "EXECUTE"
+	}
+	if len(app.SqlLimits) == 0 {
+		app.SqlLimits = []int{10, 25, 50, 100}
 	}
 	return app
 }

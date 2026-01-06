@@ -96,45 +96,46 @@ echo "Building Wasm..."
 GOOS=js GOARCH=wasm go build -o "$DEST_DIR/mks.wasm" cmd/wasm/main.go
 chmod 444 "$DEST_DIR/mks.wasm"
 
-# Documentation
-if [ "$IS_ARTIFACT" = true ]; then
-    echo "Copying documentation to artifact..."
-    mkdir -p "$DEST_DIR/doc"
-    for f in ../doc/*; do
-        if [ -f "$f" ]; then
-            fname=$(basename "$f")
-            dest="$DEST_DIR/doc/$fname"
-            [ -f "$dest" ] && chmod +w "$dest"
-            case "$fname" in
-                *.md)
-                    echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$dest"
-                    cat "$f" >> "$dest"
-                    ;;
-                *)
-                    cp "$f" "$dest"
-                    ;;
-            esac
-            chmod 444 "$dest"
-        fi
-    done
-    
-    # Also copy reference_guide.md and parser_rules.md to the root for compatibility
-    [ -f "$DEST_DIR/reference_guide.md" ] && chmod +w "$DEST_DIR/reference_guide.md"
-    echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$DEST_DIR/reference_guide.md"
-    cat ../doc/reference_guide.md >> "$DEST_DIR/reference_guide.md"
-    chmod 444 "$DEST_DIR/reference_guide.md"
+# Documentation Sync
+echo "Syncing documentation..."
+mkdir -p "$DEST_DIR/doc"
+for f in doc/*; do
+    if [ -f "$f" ]; then
+        fname=$(basename "$f")
+        dest="$DEST_DIR/doc/$fname"
+        [ -f "$dest" ] && chmod +w "$dest"
+        
+        # Always add warning for the serving (downstream) files
+        case "$fname" in
+            *.md)
+                echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$dest"
+                cat "$f" >> "$dest"
+                ;;
+            *)
+                cp "$f" "$dest"
+                ;;
+        esac
+        chmod 444 "$dest"
+    fi
+done
 
-    [ -f "$DEST_DIR/parser_rules.md" ] && chmod +w "$DEST_DIR/parser_rules.md"
-    echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$DEST_DIR/parser_rules.md"
-    cat ../doc/parser_rules.md >> "$DEST_DIR/parser_rules.md"
+# Also copy reference_guide.md and parser_rules.md to the root of static for compatibility if needed
+# (optional, but keep for now if the UI expects them there)
+[ -f "$DEST_DIR/reference_guide.md" ] && chmod +w "$DEST_DIR/reference_guide.md"
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$DEST_DIR/reference_guide.md"
+cat doc/reference_guide.md >> "$DEST_DIR/reference_guide.md"
+chmod 444 "$DEST_DIR/reference_guide.md"
 
-    # Update version and date in the artifact's parser_rules.md
-    sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" "$DEST_DIR/parser_rules.md"
-    chmod 444 "$DEST_DIR/parser_rules.md"
+[ -f "$DEST_DIR/parser_rules.md" ] && chmod +w "$DEST_DIR/parser_rules.md"
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > "$DEST_DIR/parser_rules.md"
+cat doc/parser_rules.md >> "$DEST_DIR/parser_rules.md"
 
-    [ -f "$DEST_DIR/doc/parser_rules.md" ] && chmod +w "$DEST_DIR/doc/parser_rules.md"
-    sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" "$DEST_DIR/doc/parser_rules.md"
-    chmod 444 "$DEST_DIR/doc/parser_rules.md"
-fi
+# Update version and date in the serving parser_rules.md
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" "$DEST_DIR/parser_rules.md"
+chmod 444 "$DEST_DIR/parser_rules.md"
+
+[ -f "$DEST_DIR/doc/parser_rules.md" ] && chmod +w "$DEST_DIR/doc/parser_rules.md"
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" "$DEST_DIR/doc/parser_rules.md"
+chmod 444 "$DEST_DIR/doc/parser_rules.md"
 
 echo "Wasm build and asset preparation complete."

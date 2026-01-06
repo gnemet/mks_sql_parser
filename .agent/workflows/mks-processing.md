@@ -43,11 +43,17 @@ description: how to use mks sql parser and execute in database
 ## EXECUTE mode
 
 - replace sql's $1 with $1::jsonb
-- EXECUTE sql USING json
-  select 1 as id
-  , $1::jsonb ? 'key' as key_exists
-  , $1::jsonb->>'key' as key_value
-  , 'JSON KEY EXISTS' as info --#key
+- Formula: `SELECT * FROM ( [SQL] ) AS mks_wrapper LIMIT $2`
+- Create execute command: `execute ( SELECT * FROM ( SQL ) AS mks_wrapper LIMIT 100 ) USING jsonb '...'`
+- Print execute command to SQL Log:
+  ```sql
+  EXECUTE (
+    SELECT * FROM (
+      SELECT 1 as id, $1::jsonb ? 'key' as key_exists, $1::jsonb->>'key' as key_value, 'JSON KEPT' as info
+    ) AS mks_wrapper
+    LIMIT 100
+  ) USING jsonb '{"key": "val"}'
+  ```
 
 # display sql result
 

@@ -9,6 +9,7 @@ echo "Building wasm..."
 
 echo "Syncing static files..."
 # Copy build artifacts to the serving directory
+chmod -R +w static/ 2>/dev/null || true
 cp -r cmd/server/static/* static/
 
 

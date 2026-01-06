@@ -324,6 +324,21 @@ body.dark-mode .gutter:hover {
   gap: 8px;
 }
 
+.limit-select {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 0.8rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.limit-select:hover {
+  border-color: var(--accent-color);
+}
+
 .icon-btn {
   background: none;
   border: none;

@@ -111,6 +111,23 @@ function initializeDataFromWasm() {
           verEl.title = "Built: " + verInfo.last_build;
           verEl.style.cursor = "help";
         }
+        if (verInfo.sql_limits) {
+          const limitSelect = document.getElementById("sql-limit-chooser");
+          if (limitSelect) {
+            limitSelect.innerHTML = "";
+            verInfo.sql_limits.forEach((limit) => {
+              const opt = document.createElement("option");
+              opt.value = limit;
+              opt.textContent = limit;
+              limitSelect.appendChild(opt);
+            });
+            // Try to restore previous selection if any
+            const savedLimit = localStorage.getItem("mks_sql_limit");
+            if (savedLimit) limitSelect.value = savedLimit;
+            limitSelect.onchange = (e) =>
+              localStorage.setItem("mks_sql_limit", e.target.value);
+          }
+        }
       } else {
         document.getElementById("app-version").textContent = verInfo;
       }
@@ -134,6 +151,23 @@ function initializeDataFromFetch() {
         if (verInfo.last_build) {
           verEl.title = "Built: " + verInfo.last_build;
           verEl.style.cursor = "help";
+        }
+        if (verInfo.sql_limits) {
+          const limitSelect = document.getElementById("sql-limit-chooser");
+          if (limitSelect) {
+            limitSelect.innerHTML = "";
+            verInfo.sql_limits.forEach((limit) => {
+              const opt = document.createElement("option");
+              opt.value = limit;
+              opt.textContent = limit;
+              limitSelect.appendChild(opt);
+            });
+            // Try to restore previous selection if any
+            const savedLimit = localStorage.getItem("mks_sql_limit");
+            if (savedLimit) limitSelect.value = savedLimit;
+            limitSelect.onchange = (e) =>
+              localStorage.setItem("mks_sql_limit", e.target.value);
+          }
         }
       } else {
         document.getElementById("app-version").textContent = "1.0.0 (Server)";
@@ -501,12 +535,25 @@ async function runProcessAndQuery() {
 
   try {
     const input = jsonEditor.getValue();
+    const limitSelect = document.getElementById("sql-limit-chooser");
+    const limit = limitSelect ? parseInt(limitSelect.value) : 0;
+
+    let params = {};
+    if (input.trim()) {
+      try {
+        params = JSON.parse(input);
+      } catch (e) {
+        throw new Error("Invalid JSON input: " + e.message);
+      }
+    }
+
     const response = await fetch("/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sql: parsedSql,
-        params: JSON.parse(input),
+        params: params,
+        limit: limit,
       }),
     });
 
@@ -514,7 +561,7 @@ async function runProcessAndQuery() {
 
     // Log substituted SQL if available (even on error)
     if (data && data.substituted_sql) {
-      logEntry("--- Executing Query ---", "info");
+      logEntry("--- Launched SQL ---", "info");
       logEntry(data.substituted_sql, "sql");
     }
 
@@ -524,7 +571,7 @@ async function runProcessAndQuery() {
       statusEl.style.color = "var(--danger)";
       logError(msg);
     } else if (data) {
-      displayQueryResult(data.rows || []);
+      displayQueryResult(data);
     }
   } catch (e) {
     const msg = "Network error: " + e.message;
@@ -539,30 +586,32 @@ function displayQueryResult(data) {
   const tableHead = document.getElementById("sql-table-head");
   const tableBody = document.getElementById("sql-table-body");
 
-  if (!Array.isArray(data) || data.length === 0) {
+  const rows = data.rows || [];
+  const columns = data.columns || [];
+
+  if (rows.length === 0 && columns.length === 0) {
     statusEl.textContent = "No rows returned.";
     statusEl.style.color = "var(--text-color)";
     return;
   }
 
-  statusEl.textContent = `${data.length} rows returned.`;
+  statusEl.textContent = `${rows.length} rows returned.`;
   statusEl.style.color = "var(--success)";
 
-  const columns = Object.keys(data[0]);
-
   // Headers
+  const headerTr = document.createElement("tr");
   columns.forEach((col) => {
     const th = document.createElement("th");
     th.textContent = col;
-    tableHead.appendChild(th);
+    headerTr.appendChild(th);
   });
+  tableHead.appendChild(headerTr);
 
   // Body
-  data.forEach((row) => {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
-    columns.forEach((col) => {
+    row.forEach((val) => {
       const td = document.createElement("td");
-      let val = row[col];
       if (typeof val === "object" && val !== null) {
         val = JSON.stringify(val);
       }
@@ -822,6 +871,31 @@ function copyToClipboard(elementId) {
   navigator.clipboard
     .writeText(text)
     .catch((err) => console.error("Failed to copy: ", err));
+}
+
+function copyTableToClipboard() {
+  const table = document.getElementById("sql-result-table");
+  if (!table) return;
+
+  const rows = Array.from(table.querySelectorAll("tr"));
+  const text = rows
+    .map((row) => {
+      const cells = Array.from(row.querySelectorAll("th, td"));
+      return cells.map((cell) => cell.textContent).join("\t");
+    })
+    .join("\n");
+
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      const status = document.getElementById("query-status");
+      if (status) {
+        const originalText = status.textContent;
+        status.textContent = "Table copied to clipboard!";
+        setTimeout(() => (status.textContent = originalText), 2000);
+      }
+    })
+    .catch((err) => console.error("Failed to copy table: ", err));
 }
 
 function downloadResult() {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"mks_sql/pkg/config"
@@ -118,9 +119,11 @@ func handleParserRules(w http.ResponseWriter, r *http.Request) {
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
 	version, lastBuild := config.LoadBuildInfo(nil)
-	jsonResponse(w, map[string]string{
+	appCfg := config.LoadAppConfig(nil)
+	jsonResponse(w, map[string]interface{}{
 		"version":    version,
 		"last_build": lastBuild,
+		"sql_limits": appCfg.SqlLimits,
 	}, http.StatusOK)
 }
 
@@ -149,7 +152,8 @@ func handleConnect(w http.ResponseWriter, r *http.Request) {
 		activeDB.Close(ctx)
 	}
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable search_path=%s",
+	// Build connection string with search_path and read-only mode
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable search_path=%s options='-c default_transaction_read_only=on'",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Database, cfg.Schema)
 
 	conn, err := pgx.Connect(ctx, connStr)
@@ -185,6 +189,7 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		Sql    string          `json:"sql"`
 		Params json.RawMessage `json:"params"`
 		Order  []string        `json:"order"`
+		Limit  int             `json:"limit"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonResponse(w, map[string]string{"error": "Invalid request"}, http.StatusBadRequest)
@@ -195,43 +200,84 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 	var rows pgx.Rows
 	var err error
 
-	// If Order is missing but Params are present, generate Order from map keys
-	if len(req.Params) > 0 && len(req.Order) == 0 {
-		var m map[string]interface{}
-		if err := json.Unmarshal(req.Params, &m); err == nil {
-			for k := range m {
-				req.Order = append(req.Order, k)
-			}
+	// Determine if parameterized query should be used
+	hasPlaceholders := false
+	for i := 1; i <= 10; i++ {
+		if strings.Contains(req.Sql, fmt.Sprintf("$%d", i)) {
+			hasPlaceholders = true
+			break
+		}
+	}
+
+	// Prepare arguments
+	var args []any
+	if len(req.Params) > 0 {
+		if len(req.Order) > 0 {
+			args, _ = query.JsonParamsToArgs(req.Params, req.Order)
+		} else if hasPlaceholders {
+			// Default for MKS: $1 is the whole JSON object
+			args = append(args, string(req.Params))
 		}
 	}
 
 	appCfg := config.LoadAppConfig(nil)
 
-	// Substituted SQL for debugging
-	var substitutedSQL string
-	if len(req.Params) > 0 && len(req.Order) > 0 {
-		args, _ := query.JsonParamsToArgs(req.Params, req.Order)
-		substitutedSQL = query.SubstituteParameters(req.Sql, args...)
+	// Substituted SQL for debugging and COPY mode
+	substitutedSQL := query.SubstituteParameters(req.Sql, args...)
+
+	// Construct "Launched SQL" and final execution SQL
+	var launchSql string
+	var execSql string
+
+	if appCfg.SqlExecuteMode == "COPY" {
+		// COPY mode behavior (as per workflow)
+		launchSql = substitutedSQL
+		if req.Limit > 0 {
+			launchSql = fmt.Sprintf("%s\nLIMIT %d", launchSql, req.Limit)
+		}
+		execSql = launchSql
 	} else {
-		substitutedSQL = strings.ReplaceAll(req.Sql, "$1", "$1::jsonb")
+		// EXECUTE mode formula: wrap in subquery
+		wrappedSql := fmt.Sprintf("SELECT * FROM (\n%s\n) AS mks_wrapper", req.Sql)
+
+		// Setup args for EXECUTE: $1=json, $2=limit
+		paramsStr := string(req.Params)
+		if paramsStr == "" || paramsStr == "null" {
+			paramsStr = "{}"
+		}
+		args = []any{paramsStr}
+		hasPlaceholders = true
+
+		if req.Limit > 0 {
+			wrappedSql = fmt.Sprintf("%s\nLIMIT $2", wrappedSql)
+			args = append(args, req.Limit)
+		}
+
+		// Replace :limit and $limit placeholders in the wrapped result with $2
+		wrappedSql = regexp.MustCompile(`(?i):limit|\$limit`).ReplaceAllString(wrappedSql, "$2")
+
+		// Cast $1 to jsonb as per workflow and user's snippet
+		execSql = strings.ReplaceAll(wrappedSql, "$1", "$1::jsonb")
+
+		// Construct launchSql for display (show actual limit value for clarity)
+		displaySql := strings.ReplaceAll(wrappedSql, "$1", "$1::jsonb")
+		if req.Limit > 0 {
+			displaySql = strings.ReplaceAll(displaySql, "$2", fmt.Sprintf("%d", req.Limit))
+		}
+		safeParams := strings.ReplaceAll(paramsStr, "'", "''")
+		launchSql = fmt.Sprintf("EXECUTE (\n%s\n) USING jsonb '%s'", displaySql, safeParams)
 	}
 
-	if len(req.Params) > 0 && len(req.Order) > 0 {
-		if appCfg.SqlExecuteMode == "COPY" {
-			// In COPY mode, we execute the substituted SQL directly
-			rows, err = activeDB.Query(ctx, substitutedSQL)
-		} else {
-			// In EXECUTE mode (default), we use parameterized query
-			rows, err = query.QueryJSON(ctx, activeDB, req.Sql, req.Params, req.Order)
-		}
+	if len(args) > 0 && hasPlaceholders && appCfg.SqlExecuteMode != "COPY" {
+		rows, err = activeDB.Query(ctx, execSql, args...)
 	} else {
-		rows, err = activeDB.Query(ctx, substitutedSQL)
+		rows, err = activeDB.Query(ctx, execSql)
 	}
 
 	if err != nil {
 		jsonResponse(w, map[string]interface{}{
 			"error":           fmt.Sprintf("Query failed: %v", err),
-			"substituted_sql": substitutedSQL,
+			"substituted_sql": launchSql,
 		}, http.StatusInternalServerError)
 		return
 	}
@@ -243,7 +289,7 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		cols[i] = string(fd.Name)
 	}
 
-	var result = []map[string]interface{}{}
+	var resultRows = [][]interface{}{}
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
@@ -251,22 +297,23 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		row := make(map[string]interface{})
-		for i, colName := range cols {
+		row := make([]interface{}, len(cols))
+		for i := range cols {
 			val := values[i]
 			// pgx returns various types. For JSON output, we might need to convert some (like []byte)
 			if b, ok := val.([]byte); ok {
-				row[colName] = string(b)
+				row[i] = string(b)
 			} else {
-				row[colName] = val
+				row[i] = val
 			}
 		}
-		result = append(result, row)
+		resultRows = append(resultRows, row)
 	}
 
 	jsonResponse(w, map[string]interface{}{
-		"rows":            result,
-		"substituted_sql": substitutedSQL,
+		"columns":         cols,
+		"rows":            resultRows,
+		"substituted_sql": launchSql,
 	}, http.StatusOK)
 }
 

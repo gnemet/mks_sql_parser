@@ -1,5 +1,4 @@
-> **Version**: 1.0.0057 | **Last Build**: 2026-01-06 11:15 CET
-
+<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
 # MKS SQL Parser Rules
 
 This document outlines the syntax and usage of the MKS SQL Parser features implemented in the `mks_sql.so` shared library. The parser processes SQL text using a provided JSON input to conditionally include, exclude, or modify lines of code.
