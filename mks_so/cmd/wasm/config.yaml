@@ -2,12 +2,14 @@
 # Application
 application:
   name: "mks_sql_parser"
-  version: "1.0.0057"
-  last_build: "2026-01-05 17:18 CET"
+  version: "1.0.0056"
+  last_build: "2026-01-06 09:59 CET"
   host: "localhost"
   port: 8080
   reference_doc_path: "doc/reference_guide.md"
   parser_rules_doc_path: "doc/parser_rules.md"
+  # sql_execute_mode: "COPY"
+  sql_execute_mode: "EXECUTE"
 
 copy:
   csv:
