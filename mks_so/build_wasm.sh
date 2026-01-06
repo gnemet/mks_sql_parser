@@ -32,7 +32,7 @@ cat config.yaml >> cmd/wasm/config.yaml
 chmod 444 cmd/wasm/config.yaml
 
 # Create static directory if it doesn't exist
-mkdir -p cmd/server/static
+mkdir -p static
 
 # Copy frontend assets
 echo "Copying frontend assets..."
@@ -65,19 +65,19 @@ copy_with_warning() {
     chmod 444 "$dest"
 }
 
-copy_with_warning "static/index.html" "cmd/server/static/index.html" "html"
-copy_with_warning "static/style.css" "cmd/server/static/style.css" "slash"
-copy_with_warning "static/mks_sql_ins_parser.js" "cmd/server/static/mks_sql_ins_parser.js" "slash"
-copy_with_warning "static/app.js" "cmd/server/static/app.js" "slash"
+copy_with_warning "cmd/server/static/index.html" "static/index.html" "html"
+copy_with_warning "cmd/server/static/style.css" "static/style.css" "slash"
+copy_with_warning "cmd/server/static/mks_sql_ins_parser.js" "static/mks_sql_ins_parser.js" "slash"
+copy_with_warning "cmd/server/static/app.js" "static/app.js" "slash"
 
 # Copy wasm_exec.js from Go distribution if not present
-if [ ! -f cmd/server/static/wasm_exec.js ]; then
+if [ ! -f static/wasm_exec.js ]; then
     # Try common locations or use go env GOROOT
     GOROOT=$(go env GOROOT)
     if [ -f "$GOROOT/lib/wasm/wasm_exec.js" ]; then
-        cp "$GOROOT/lib/wasm/wasm_exec.js" cmd/server/static/wasm_exec.js
+        cp "$GOROOT/lib/wasm/wasm_exec.js" static/wasm_exec.js
     elif [ -f "$GOROOT/misc/wasm/wasm_exec.js" ]; then
-        cp "$GOROOT/misc/wasm/wasm_exec.js" cmd/server/static/wasm_exec.js
+        cp "$GOROOT/misc/wasm/wasm_exec.js" static/wasm_exec.js
     else
         echo "Error: wasm_exec.js not found in GOROOT ($GOROOT)"
         exit 1
@@ -86,17 +86,17 @@ fi
 
 # Build Wasm binary
 echo "Building Wasm..."
-[ -f cmd/server/static/mks.wasm ] && chmod +w cmd/server/static/mks.wasm
-GOOS=js GOARCH=wasm go build -o cmd/server/static/mks.wasm cmd/wasm/main.go
-chmod 444 cmd/server/static/mks.wasm
+[ -f static/mks.wasm ] && chmod +w static/mks.wasm
+GOOS=js GOARCH=wasm go build -o static/mks.wasm cmd/wasm/main.go
+chmod 444 static/mks.wasm
 
 # Copy documentation to static folder for GitHub Pages
 echo "Copying documentation..."
-mkdir -p cmd/server/static/doc
+mkdir -p static/doc
 for f in ../doc/*; do
     if [ -f "$f" ]; then
         fname=$(basename "$f")
-        dest="cmd/server/static/doc/$fname"
+        dest="static/doc/$fname"
         [ -f "$dest" ] && chmod +w "$dest"
         case "$fname" in
             *.md)
@@ -112,21 +112,21 @@ for f in ../doc/*; do
 done
 
 # Also copy reference_guide.md and parser_rules.md to the root for compatibility
-[ -f cmd/server/static/reference_guide.md ] && chmod +w cmd/server/static/reference_guide.md
-echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/reference_guide.md
-cat ../doc/reference_guide.md >> cmd/server/static/reference_guide.md
-chmod 444 cmd/server/static/reference_guide.md
+[ -f static/reference_guide.md ] && chmod +w static/reference_guide.md
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > static/reference_guide.md
+cat ../doc/reference_guide.md >> static/reference_guide.md
+chmod 444 static/reference_guide.md
 
-[ -f cmd/server/static/parser_rules.md ] && chmod +w cmd/server/static/parser_rules.md
-echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > cmd/server/static/parser_rules.md
-cat ../doc/parser_rules.md >> cmd/server/static/parser_rules.md
+[ -f static/parser_rules.md ] && chmod +w static/parser_rules.md
+echo "<!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->" > static/parser_rules.md
+cat ../doc/parser_rules.md >> static/parser_rules.md
 
 # Update version and date in the copied parser_rules.md (both root and doc/)
-sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/parser_rules.md
-chmod 444 cmd/server/static/parser_rules.md
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" static/parser_rules.md
+chmod 444 static/parser_rules.md
 
-[ -f cmd/server/static/doc/parser_rules.md ] && chmod +w cmd/server/static/doc/parser_rules.md
-sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" cmd/server/static/doc/parser_rules.md
-chmod 444 cmd/server/static/doc/parser_rules.md
+[ -f static/doc/parser_rules.md ] && chmod +w static/doc/parser_rules.md
+sed -i "s/> \*\*Version\*\*: .* | \*\*Last Build\*\*: .*/> **Version**: $NEW_VERSION | **Last Build**: $NEW_DATE/" static/doc/parser_rules.md
+chmod 444 static/doc/parser_rules.md
 
 echo "Wasm build and asset copy complete."

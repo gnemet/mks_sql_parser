@@ -26,9 +26,6 @@ go test -v ./...
 echo "Building wasm..."
 ./build_wasm.sh
 
-echo "Syncing static files..."
-cp -r cmd/server/static/* static/
-
 echo "Building server..."
 go build -o mks_server ./cmd/server
 

@@ -1,5 +1,5 @@
 <!-- WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. -->
-> **Version**: 1.0.0056 | **Last Build**: 2026-01-06 09:59 CET
+> **Version**: 1.0.0064 | **Last Build**: 2026-01-06 12:02 CET
 
 # MKS SQL Parser Rules
 

@@ -1,31 +1,4 @@
 // WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-// WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE.
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
-/* WARNING: THIS IS A COPIED FILE. DO NOT MODIFY THIS FILE. */
 :root {
   color-scheme: light dark;
   --bg-color: #f9fafb;
@@ -238,7 +211,7 @@ body.dark-mode .header-right .icon-btn:hover {
   opacity: 0.5;
 }
 
-.gutter-horizontal {
+/* .gutter-horizontal {
   height: 20px;
   cursor: row-resize;
   width: 100%;
@@ -254,7 +227,30 @@ body.dark-mode .header-right .icon-btn:hover {
   margin-left: -4px;
   margin-right: -4px;
   z-index: 100;
+} */
+
+:root {
+/* --gutter-size: 8px; */
+--gutter-size: 0.5rem; /* scales with font size */
 }
+
+
+.gutter-horizontal {
+height: var(--gutter-size);
+width: 100%;
+margin-block: calc(var(--gutter-size) / -2);
+cursor: row-resize;
+}
+
+
+.gutter-vertical {
+width: var(--gutter-size);
+height: 100%;
+margin-inline: calc(var(--gutter-size) / -2);
+cursor: col-resize;
+}
+
+
 
 .gutter-horizontal::after {
   content: "";
