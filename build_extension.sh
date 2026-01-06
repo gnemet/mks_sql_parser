@@ -8,8 +8,8 @@ EXTENSION_DIR="pg_extension"
 
 # 1. Read current version from config.yaml
 # Assumes line format: version: "1.0.0000"
-CURRENT_VERSION_LINE=$(grep "^version:" "$CONFIG_FILE")
-CURRENT_VERSION=$(echo "$CURRENT_VERSION_LINE" | sed -E 's/version: "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
+CURRENT_VERSION_LINE=$(grep "version:" "$CONFIG_FILE")
+CURRENT_VERSION=$(echo "$CURRENT_VERSION_LINE" | sed -E 's/.*version: "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
 
 echo "Current Version: $CURRENT_VERSION"
 
