@@ -199,76 +199,40 @@ body.dark-mode .header-right .icon-btn:hover {
 }
 
 /* Splitters (Gutters) */
+:root {
+  --gutter-size: 10px;
+}
+
 .gutter {
   background-color: transparent;
   transition: background-color 0.2s;
   user-select: none;
-}
-.gutter:hover,
-.gutter:active {
-  background-color: var(--accent-color);
-  opacity: 0.5;
-}
-
-/* .gutter-horizontal {
-  height: 20px;
-  cursor: row-resize;
-  width: 100%;
-  margin-top: -4px;
-  margin-bottom: -4px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
   z-index: 100;
 }
-
-.gutter-vertical {
-  width: 8px;
-  cursor: col-resize;
-  height: 100%;
-  margin-left: -4px;
-  margin-right: -4px;
-  z-index: 100;
-} */
-
-:root {
-/* --gutter-size: 8px; */
---gutter-size: 0.5rem; /* scales with font size */
-}
-
 
 .gutter-horizontal {
-height: var(--gutter-size);
-width: 100%;
-margin-block: calc(var(--gutter-size) / -2);
-cursor: row-resize;
+  height: var(--gutter-size);
+  width: 100%;
+  margin-block: calc(var(--gutter-size) / -2);
+  cursor: row-resize;
 }
-
 
 .gutter-vertical {
-width: var(--gutter-size);
-height: 100%;
-margin-inline: calc(var(--gutter-size) / -2);
-cursor: col-resize;
+  width: var(--gutter-size);
+  height: 100%;
+  margin-inline: calc(var(--gutter-size) / -2);
+  cursor: col-resize;
 }
-
-
 
 .gutter-horizontal::after {
   content: "";
   width: 30px;
-  height: 20px;
+  height: 4px;
   background-color: var(--border-color);
   border-radius: 2px;
-}
-
-.gutter-vertical {
-  width: 10px;
-  cursor: col-resize;
-  height: 100%;
-  border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .gutter-vertical::after {
@@ -280,17 +244,12 @@ cursor: col-resize;
 }
 
 .gutter:hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(124, 131, 253, 0.1);
 }
 
-.gutter-horizontal:hover {
-  border-top-color: var(--accent-color);
-  border-bottom-color: var(--accent-color);
-}
-
-.gutter-vertical:hover {
-  border-left-color: var(--accent-color);
-  border-right-color: var(--accent-color);
+.gutter-horizontal:hover::after,
+.gutter-vertical:hover::after {
+  background-color: var(--accent-color);
 }
 
 /* Special flag for resizing: disable transitions and selection */
@@ -301,7 +260,7 @@ body.resizing * {
 }
 
 body.dark-mode .gutter:hover {
-  background-color: rgba(77, 163, 255, 0.1);
+  background-color: rgba(96, 165, 250, 0.1);
 }
 
 /* Collapsed State */

@@ -1,8 +1,8 @@
 # Application
 application:
   name: "mks_sql_parser"
-  version: "1.0.0066"
-  last_build: "2026-01-06 12:27 CET"
+  version: "1.0.0070"
+  last_build: "2026-01-06 13:50 CET"
   host: "localhost"
   port: 8080
   reference_doc_path: "doc/reference_guide.md"
