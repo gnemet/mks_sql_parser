@@ -22,3 +22,7 @@ debug_output*.txt
 mks_so/cmd/server/static/mks.wasm
 mks_so/cmd/server/static/wasm_exec.js
 mks_so/cmd/wasm/config.yaml
+mks_so/doc/
+mks_so/static/doc/
+mks_so/cmd/server/static/doc/
+latest/doc/

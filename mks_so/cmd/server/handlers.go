@@ -71,12 +71,12 @@ func handleDoc(w http.ResponseWriter, r *http.Request) {
 	appCfg := config.LoadAppConfig(nil)
 	docPath := appCfg.ReferenceDocPath
 	if docPath == "" {
-		docPath = "doc/reference_guide.md"
+		docPath = "../doc/reference_guide.md"
 	}
 	content, err := os.ReadFile(docPath)
 	if err != nil {
 		// Try fallback locations
-		fallbacks := []string{"../" + docPath, "../../../" + docPath, "doc/reference_guide.md"}
+		fallbacks := []string{"cmd/server/static/doc/reference_guide.md", "static/doc/reference_guide.md", "doc/reference_guide.md"}
 		for _, f := range fallbacks {
 			content, err = os.ReadFile(f)
 			if err == nil {
@@ -97,11 +97,11 @@ func handleParserRules(w http.ResponseWriter, r *http.Request) {
 	appCfg := config.LoadAppConfig(nil)
 	docPath := appCfg.ParserRulesDocPath
 	if docPath == "" {
-		docPath = "doc/parser_rules.md"
+		docPath = "../doc/parser_rules.md"
 	}
 	content, err := os.ReadFile(docPath)
 	if err != nil {
-		fallbacks := []string{"../" + docPath, "../../../" + docPath, "doc/parser_rules.md"}
+		fallbacks := []string{"cmd/server/static/doc/parser_rules.md", "static/doc/parser_rules.md", "doc/parser_rules.md"}
 		for _, f := range fallbacks {
 			content, err = os.ReadFile(f)
 			if err == nil {

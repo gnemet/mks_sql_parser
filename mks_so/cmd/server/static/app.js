@@ -388,39 +388,88 @@ function setupUI(tests, rules) {
   });
 }
 
-function loadDoc(filename) {
-  const url = filename;
-  fetch(url)
-    .then((r) => {
-      if (!r.ok && filename === "reference_guide.md" && !url.includes("doc/")) {
-        return fetch("doc/reference_guide.md");
-      }
-      return r;
-    })
-    .then((r) => {
-      if (!r.ok) throw new Error("Document not found: " + url);
-      return r.text();
-    })
-    .then((text) => {
-      const html = marked.parse(text);
-      const docContent = document.getElementById("doc-content");
+/**
+ * Loads and renders markdown content into a specific container.
+ * @param {string} url The URL to fetch
+ * @param {string} containerId The ID of the container element
+ * @param {string} flagName Optional window property to set when loaded
+ * @param {function} preProcessFn Optional function to pre-process the fetched text
+ * @param {function} postProcessFn Optional function to post-process the rendered HTML
+ */
+async function loadMarkdown(
+  url,
+  containerId,
+  flagName,
+  preProcessFn,
+  postProcessFn
+) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-      let navHtml = "";
-      if (filename !== "reference_guide.md") {
-        navHtml = `<p><a href="#" onclick="event.preventDefault(); loadDoc('reference_guide.md'); return false;">&larr; Back to Reference Guide</a></p><hr>`;
-      }
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Failed to load ${url} (Status: ${r.status})`);
 
-      docContent.innerHTML = navHtml + html;
-      docContent.scrollTop = 0;
-      docContent.style.whiteSpace = "normal";
-      docContent.style.fontFamily = "inherit";
+    let text = await r.text();
+    // Clean up warning banners if any
+    let cleanText = text.replace(/<!-- WARNING: .* -->\n?/, "");
+
+    if (preProcessFn) {
+      cleanText = await preProcessFn(cleanText);
+    }
+
+    let html = "";
+    if (typeof marked.parse === "function") {
+      html = marked.parse(cleanText);
+    } else if (typeof marked === "function") {
+      html = marked(cleanText);
+    } else {
+      throw new Error("Marked library not found");
+    }
+
+    if (postProcessFn) {
+      html = postProcessFn(html);
+    }
+
+    container.innerHTML = html;
+    container.scrollTop = 0;
+    if (flagName) window[flagName] = true;
+
+    // If it's the doc-content, re-bind links
+    if (containerId === "doc-content") {
       bindDocLinks();
-    })
-    .catch((err) => {
-      const docContent = document.getElementById("doc-content");
-      if (docContent)
-        docContent.innerHTML = `<p style="color:red">Error loading documentation: ${err.message}</p>`;
-    });
+    }
+  } catch (err) {
+    console.error(`Error loading markdown from ${url}:`, err);
+    container.innerHTML = `<div class="error-msg" style="color:var(--danger); padding: 1rem;">
+      <i class="fas fa-exclamation-triangle"></i> Error: ${err.message}
+    </div>`;
+  }
+}
+
+function loadDoc(filename) {
+  const docContent = document.getElementById("doc-content");
+  if (!docContent) return;
+
+  // Post-process function to add navigation HTML
+  const postProcessDoc = (html) => {
+    let navHtml = "";
+    if (
+      filename !== "reference_guide.md" &&
+      filename !== "doc/reference_guide.md"
+    ) {
+      navHtml = `<p><a href="#" onclick="event.preventDefault(); loadDoc('reference_guide.md'); return false;">&larr; Back to Reference Guide</a></p><hr>`;
+    }
+    return navHtml + html;
+  };
+
+  loadMarkdown(filename, "doc-content", "docLoaded", null, postProcessDoc);
+  docContent.style.whiteSpace = "normal";
+  docContent.style.fontFamily = "inherit";
+}
+
+function loadHelp() {
+  loadMarkdown("doc/tester_guide.md", "help-content", "helpLoaded");
 }
 
 function bindDocLinks() {
@@ -697,14 +746,24 @@ function updateHighlightTheme() {
 
 function toggleDoc() {
   const modal = document.getElementById("doc-modal");
-  if (modal)
-    modal.style.display = modal.style.display === "block" ? "none" : "block";
+  if (modal) {
+    const isVisible = modal.style.display === "block";
+    modal.style.display = isVisible ? "none" : "block";
+    if (!isVisible && !window.docLoaded) {
+      loadDoc("reference_guide.md"); // Server handler at root
+    }
+  }
 }
 
 function toggleHelp() {
   const modal = document.getElementById("help-modal");
-  if (modal)
-    modal.style.display = modal.style.display === "block" ? "none" : "block";
+  if (modal) {
+    const isVisible = modal.style.display === "block";
+    modal.style.display = isVisible ? "none" : "block";
+    if (!isVisible && !window.helpLoaded) {
+      loadHelp();
+    }
+  }
 }
 
 function toggleFold(paneId) {
