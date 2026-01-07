@@ -1,0 +1,20 @@
+[
+  {
+    "name": "zenbook",
+    "host": "localhost",
+    "port": "5433",
+    "user": "root",
+    "password": "soa123",
+    "database": "db01",
+    "schema": "mkr,demo_db,public"
+  },
+  {
+    "name": "supabase",
+    "host": "aws-1-eu-west-1.pooler.supabase.com",
+    "port": "5432",
+    "user": "postgres.tktaldyiismzrrgrzygc",
+    "password": "30wTALxoOmdF4bnT",
+    "database": "postgres",
+    "schema": "public"
+  }
+]

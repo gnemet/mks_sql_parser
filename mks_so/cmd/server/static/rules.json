@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "regex": "--\u003c(!?)([\\w]+)(?:(:|!:)([^\u003e\\s]+))?",
+    "action": "block_start",
+    "description": "Block Logic: Defines the start and end of conditional or iterative blocks. Matches standard block starts: --\u003ctag, --\u003c!tag (negated), or --\u003ctag:subtag"
+  },
+  {
+    "id": 2,
+    "regex": "--\\s*\u003c\\{\\s*(.*?)\\s*\\}",
+    "action": "block_start_jsonpath",
+    "description": "Matches JSONPath block starts: --\u003c{ $.path.to.key }"
+  },
+  {
+    "id": 3,
+    "regex": "^\\s*--(?:[\\w!:]+\u003e|\u003e(?:[\\w!:]*))\\s*$",
+    "action": "block_end",
+    "description": "Matches block ends: --\u003e or --tag\u003e or --\u003etag"
+  },
+  {
+    "id": 4,
+    "regex": "--\\s*\u003c\\s*\\$1\\s*#\u003e\\s*[$\u003e^\u0026@#]*\\s*'{([^']+)}'(?:\\s*=\\s*'([^']+)')?\\s*\u003e",
+    "action": "block_start_nested",
+    "description": "Matches nested block starts using Postgres array syntax: --\u003c $1 #\u003e '{key1,key2}' = 'value' \u003e"
+  },
+  {
+    "id": 5,
+    "regex": "--\\s*\u003c\\s*#'?([^\\s']+)'?\\s*(!~~\\*|!~\\*|!~~|~~\\*|!%\u003e|!=|!~|~\\*|~~|!%|%\u003e|=|~|%)\\s*'([^']+)'\\s*\u003e",
+    "action": "block_start_simple_extended",
+    "description": "Matches simple conditional block starts: --\u003c #key = 'value' \u003e or --\u003c #key != 'value' \u003e or other ops"
+  },
+  {
+    "id": 6,
+    "regex": "--\\s*#\\{\\s*(.*?)\\s*\\}",
+    "action": "line_filter_jsonpath",
+    "description": "Line Filter Tags: Matches JSONPath line filters: --#{ $.path.to.key }"
+  },
+  {
+    "id": 7,
+    "regex": "--\\s*#'?([^\\s']+)'?\\s*(!~~\\*|!~\\*|!~~|~~\\*|!%\u003e|!=|!~|~\\*|~~|!%|%\u003e|=|~|%)\\s*'([^']+)'",
+    "action": "line_filter_simple_extended",
+    "description": "Matches simple conditional line filters: --#key = 'value' or other ops"
+  },
+  {
+    "id": 8,
+    "regex": "#(!?)([\\w]+)(?:(:|!:)([^\u003e\\s]+))?",
+    "action": "line_filter",
+    "description": "Matches standard line filters: #tag, #!tag, #tag:subtag, #!tag:val, #tag:!val"
+  },
+  {
+    "id": 9,
+    "regex": "\\$1(?:::jsonb)?\\s*(?:\\?|-\u003e\u003e|-\u003e|#\u003e\u003e|#\u003e|#=|#\\^|#@|-\u003e\u0026|#\u0026|-\u003e\\^|-\u003e@|-\u003e\u003e\u003e|#\u003e\u003e\u003e|-\u003e\u0026\u0026|#\u0026\u0026|#\u003e=#|#\u003c=#|#\u003c\u003e#|-\u003e##|#\u003e##|-\u003e\\^\\^|-\u003e@@|#\\^\\^|#@@|-\u003e#)\\s*'([^']+)'",
+    "action": "delete",
+    "description": "Postgres Filter: Checks for key existence using various JSON operators. Matches: $1-\u003e'key', $1#\u003e\u003e'key', etc."
+  },
+  {
+    "id": 10,
+    "regex": "\\$1\\s*#\u003e\\s*[$\u003e^\u0026@#]*\\s*'{([^']+)}'(?:\\s*=\\s*'([^']+)')?",
+    "action": "line_filter_nested",
+    "description": "Nested Keys: Matches Postgres Array Syntax for nested line filtering. Matches: $1 #\u003e '{path,to,key}' = 'value'"
+  },
+  {
+    "id": 11,
+    "regex": "\\B[\\$:]([a-zA-Z_]\\w*)",
+    "action": "replace_delete",
+    "description": "Replace or Delete: Handles standard SQL parameters and legacy $ prefixes. Matches: :variable_name or $variable_name"
+  },
+  {
+    "id": 12,
+    "regex": "%(\\w+)%",
+    "action": "replace_empty",
+    "description": "Replace or Empty: Handles bracketed placeholder syntax. Matches: %variable_name%"
+  }
+]

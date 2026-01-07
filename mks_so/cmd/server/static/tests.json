@@ -1,0 +1,236 @@
+[
+  {
+    "id": 0,
+    "description": "For database test",
+    "input": {
+      "key": "json"
+    },
+    "text": "SELECT 1 as id, $1 ? 'key' as key_exists, $1#\u003e\u003e'{key}' as key_value\n",
+    "expected": "SELECT 1 as id, $1 ? 'key' as key_exists, $1#\u003e\u003e'{key}' as key_value\n",
+    "csv_expected": "1,t,json\n",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 0,
+    "description": "For demo_personnel table test",
+    "input": {
+      "department": "IT"
+    },
+    "text": "SELECT * FROM demo_personnel \nwhere true\nand $1 ? 'department'\nand department = $1#\u003e\u003e'{department}'\nand department = $1-\u003e\u003e'department'\n",
+    "expected": "",
+    "csv_expected": "",
+    "passed": false,
+    "skip_from_test": false
+  },
+  {
+    "id": 1,
+    "description": "Block Exists: Keep block if key exists.",
+    "input": {
+      "key": true
+    },
+    "text": "SELECT 'dummy' as info \n--\u003ckey\n, 'KEPT by exists' as info\n--key\u003e      \n--\u003c!key\n, 'KEPT by not exists' as info\n--key\u003e      \n--\u003ckey:true\n, 'KEPT by value is true' as info\n--key\u003e      \n--\u003c!key:true\n, 'KEPT by value is not false' as info\n--key\u003e\n",
+    "expected": "SELECT 'dummy' as info \n, 'KEPT by exists' as info\n, 'KEPT by value is true' as info\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 1,
+    "description": "Block Not Exists: Delete block if key exists.",
+    "input": {
+      "key": true
+    },
+    "text": "SELECT 'dummy' as info  \n--\u003c!key\n, 'DELETED' as info\n--key\u003e\n",
+    "expected": "SELECT 'dummy' as info\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 1,
+    "description": "Block Value: Keep block if key=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 'dummy' as info \n--\u003ckey:val\n, 'KEPT' as info\n--key\u003e\n",
+    "expected": "SELECT 'dummy' as info \n, 'KEPT' as info\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 1,
+    "description": "Block Not Value: Delete block if key=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 'dummy' as info \n--\u003c!key:val\n, 'DELETED' as info\n--key\u003e\n",
+    "expected": "SELECT 'dummy' as info\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 1,
+    "description": "Block Not Value (Strict): Keep block if key!=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 'dummy' as info \n--\u003ckey!:other\n, 'KEPT' as info\n--key\u003e\n--\u003ckey!:val\n, 'DELETED' as info\n--key\u003e\n",
+    "expected": "SELECT 'dummy' as info \n, 'KEPT' as info\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 8,
+    "description": "Line Exists: Keep line if key exists.",
+    "input": {
+      "key": true
+    },
+    "text": "SELECT 1 --#key",
+    "expected": "SELECT 1 --#key",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 8,
+    "description": "Line Not Exists: Delete line if key exists.",
+    "input": {
+      "key": true
+    },
+    "text": "SELECT 1 --#!key",
+    "expected": "",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 8,
+    "description": "Line Value: Keep line if key=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 1 --#key:val",
+    "expected": "SELECT 1 --#key:val",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 8,
+    "description": "Line Not Value: Delete line if key=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 1 --#!key:val",
+    "expected": "",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 8,
+    "description": "Line Not Value (Alt): Delete line if key=value.",
+    "input": {
+      "key": "val"
+    },
+    "text": "SELECT 1 --#key:!val",
+    "expected": "",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 9,
+    "description": "Postgres Filters: Keep if key exists, delete if missing.",
+    "input": {
+      "key": 1
+    },
+    "text": "SELECT $1-\u003e'key'\nSELECT $1#\u003e\u003e'{key}'\nSELECT $1-\u003e'missing'\n",
+    "expected": "SELECT $1-\u003e'key'\nSELECT $1#\u003e\u003e'{key}'\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 11,
+    "description": "Replace or Delete: $var and :var replaced if exists, deleted if missing.",
+    "input": {
+      "var": "val"
+    },
+    "text": "SELECT $var\nSELECT :var\nSELECT $missing\n",
+    "expected": "SELECT val\nSELECT val\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 12,
+    "description": "Replace or Empty/Delete: replace the %tag% or :tag or $tag if variable exists, otherwise replace the %tag% to empty string the other tags are line deleted",
+    "input": {
+      "key1": "val"
+    },
+    "text": "SELECT 'dummy'\n  , concat( 'aaa', '%key1%' )\n  , concat( 'aaa', ':key1' ) \n  , concat( 'aaa', '$key1' ) \nSELECT 'dummy'\n  , concat( 'aaa', '%key2%' )\n  , concat( 'aaa', ':key2' ) \n  , concat( 'aaa', '$key2' )\n",
+    "expected": "SELECT 'dummy'\n  , concat( 'aaa', 'val' )\n  , concat( 'aaa', 'val' ) \n  , concat( 'aaa', 'val' ) \nSELECT 'dummy'\n  , concat( 'aaa', '' )\n",
+    "csv_expected": "",
+    "passed": true,
+    "skip_from_test": false
+  },
+  {
+    "id": 13,
+    "description": "All Rules Comprehensive Test",
+    "input": {
+      "basic": {
+        "exists": true,
+        "value_match": "match",
+        "value_mismatch": "mismatch"
+      },
+      "empty_str": "",
+      "jsonpath": {
+        "a": 10,
+        "b": 20,
+        "list": [
+          {
+            "active": true,
+            "id": 1
+          },
+          {
+            "active": false,
+            "id": 2
+          }
+        ]
+      },
+      "ops": {
+        "desc": "This is a long description text",
+        "email": "test@gmail.com",
+        "name": "John Doe",
+        "status": "active"
+      },
+      "pg": {
+        "array_str": [
+          "a",
+          "b",
+          "c"
+        ],
+        "nested": {
+          "deep_key": "deep_val",
+          "number": 42
+        },
+        "simple_key": "simple_val"
+      },
+      "special_chars": "value_with_underscore",
+      "sub": {
+        "keep_line": "kept",
+        "replace": "replaced_value"
+      }
+    },
+    "text": "-- ============================================================\n-- MKS SQL Parser Comprehensive Test Case\n-- Covers all rules defined in config.yaml (IDs 1-12)\n-- Input: test/all_rules.json\n-- ============================================================\n\nSELECT 'START_TEST' as status;\n\n-- ============================================================\n-- GROUP 1: BLOCK LOGIC (IDs 1, 2, 3, 4, 5)\n-- ============================================================\n\n-- [ID 1] Standard Block Logic\n-- 1.1 Exists (Should be KEPT)\n--\u003cbasic.exists\nSELECT 'Block 1.1 KEPT' as rule_1_exists;\n--\u003e\n\n-- 1.2 Not Exists (Should be KEPT)\n--\u003c!basic.missing_key\nSELECT 'Block 1.2 KEPT' as rule_1_not_exists;\n--\u003e\n\n-- 1.3 Value Match (Should be KEPT)\n--\u003cbasic.value_match:match\nSELECT 'Block 1.3 KEPT' as rule_1_value_match;\n--\u003e\n\n-- 1.4 Value Mismatch (Should be REMOVED)\n--\u003cbasic.value_match:wrong_value\nSELECT 'Block 1.4 REMOVED' as rule_1_value_mismatch;\n--\u003e\n\n-- [ID 2] JSONPath Block Logic\n-- 2.1 Complex Expression (Should be KEPT)\n--\u003c{ $.jsonpath.a + $.jsonpath.b == 30 }\nSELECT 'Block 2.1 KEPT' as rule_2_jsonpath_math;\n--\u003e\n\n-- 2.2 Array Check (Should be KEPT)\n--\u003c{ $.jsonpath.list[0].active == true }\nSELECT 'Block 2.2 KEPT' as rule_2_jsonpath_array;\n--\u003e\n\n-- 2.3 False Expression (Should be REMOVED)\n--\u003c{ $.jsonpath.a \u003e 100 }\nSELECT 'Block 2.3 REMOVED' as rule_2_jsonpath_false;\n--\u003e\n\n-- [ID 4] Nested Block (Postgres Syntax)\n-- 4.1 Nested Exists (Should be KEPT)\n--\u003c $1 #\u003e '{pg,nested,deep_key}' \u003e\nSELECT 'Block 4.1 KEPT' as rule_4_nested_exists;\n--\u003e\n\n-- 4.2 Nested Value Match (Should be KEPT)\n--\u003c $1 #\u003e '{pg,nested,number}' = '42' \u003e\nSELECT 'Block 4.2 KEPT' as rule_4_nested_value;\n--\u003e\n\n-- [ID 5] Simple Extended Block Logic\n-- 5.1 Regex Match (Should be KEPT)\n--\u003c #'ops.email' ~ '@gmail\\.com$' \u003e\nSELECT 'Block 5.1 KEPT' as rule_5_regex;\n--\u003e\n\n-- 5.2 LIKE Match (Should be KEPT)\n--\u003c #'ops.name' ~~ 'J%' \u003e\nSELECT 'Block 5.2 KEPT' as rule_5_like;\n--\u003e\n\n-- 5.3 Not Equal (Should be KEPT)\n--\u003c #'ops.status' != 'inactive' \u003e\nSELECT 'Block 5.3 KEPT' as rule_5_not_equal;\n--\u003e\n\n-- ============================================================\n-- GROUP 2: LINE FILTERS (IDs 6, 7, 8, 10)\n-- ============================================================\n\n-- [ID 8] Standard Line Filters\nSELECT 'Line 8.1 KEPT' as rule_8_exists;      -- #basic.exists\nSELECT 'Line 8.2 REMOVED' as rule_8_exists_fail; -- #basic.missing\nSELECT 'Line 8.3 KEPT' as rule_8_not_exists;  -- #!basic.missing\nSELECT 'Line 8.4 KEPT' as rule_8_val_match;   -- #basic.value_match:match\nSELECT 'Line 8.5 REMOVED' as rule_8_val_fail;    -- #basic.value_match:wrong\n\n-- [ID 6] JSONPath Line Filters\nSELECT 'Line 6.1 KEPT' as rule_6_path_true;   -- #{ $.jsonpath.b \u003e 10 }\nSELECT 'Line 6.2 REMOVED' as rule_6_path_false;  -- #{ $.jsonpath.b \u003c 10 }\n\n-- [ID 7] Simple Extended Line Filters\nSELECT 'Line 7.1 KEPT' as rule_7_regex;       -- #'ops.email' ~ 'test'\nSELECT 'Line 7.2 REMOVED' as rule_7_regex_fail;  -- #'ops.email' !~ 'test'\nSELECT 'Line 7.3 KEPT' as rule_7_like;        -- #'ops.desc' ~~ '%long%'\n\n-- [ID 10] Nested Line Filters (Postgres Syntax)\nSELECT 'Line 10.1 KEPT' as rule_10_nest_ex;   -- $1 #\u003e '{pg,nested,deep_key}'\nSELECT 'Line 10.2 KEPT' as rule_10_nest_val;  -- $1 #\u003e '{pg,nested,number}' = '42'\nSELECT 'Line 10.3 REMOVED' as rule_10_val_fail;  -- $1 #\u003e '{pg,nested,number}' = '99'\n\n-- ============================================================\n-- GROUP 3: POSTGRES FILTERS (ID 9)\n-- ============================================================\n\n-- 9.1 Simple Key Access (Result must not be null/missing)\nSELECT 1 FROM tmptbl WHERE id = $1-\u003e'pg'; -- Kept because 'pg' exists\n\n-- 9.2 Path Access\nSELECT 1 FROM tmptbl WHERE val = $1#\u003e\u003e'{pg,simple_key}'; -- Kept\n\n-- 9.3 Missing Key (Should be REMOVED)\nSELECT 1 FROM tmptbl WHERE id = $1-\u003e'non_existent_key'; -- REMOVED\n\n-- ============================================================\n-- GROUP 4: SUBSTITUTIONS (IDs 11, 12)\n-- ============================================================\n\n-- [ID 12] Replace or Empty (%key%)\nSELECT '%sub.replace%' as rule_12_replaced; -- Should be 'replaced_value'\nSELECT '%sub.missing%' as rule_12_empty;    -- Should be ''\n\n-- [ID 11] Replace or Delete (:key, $key)\nSELECT :sub.replace    as rule_11_colon_kept;   -- Should be replaced\nSELECT :sub.missing    as rule_11_colon_del;    -- Should be REMOVED\nSELECT $sub.replace    as rule_11_dollar_kept;  -- Should be replaced\nSELECT $sub.missing    as rule_11_dollar_del;   -- Should be REMOVED\n\nSELECT 'END_TEST' as status;\n",
+    "expected": "",
+    "csv_expected": "",
+    "passed": false,
+    "skip_from_test": true
+  }
+]

@@ -28,6 +28,28 @@ marked.setOptions({
   langPrefix: "hljs language-",
 });
 
+/**
+ * Resilient fetch helper for static fallbacks.
+ * Tries the primary URL first, then falls back to .json if it fails.
+ */
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url);
+    if (r.ok) return await r.json();
+    throw new Error(`HTTP ${r.status}`);
+  } catch (e) {
+    // If it already ends in .json or doesn't start with /, don't retry with .json logic easily,
+    // but here we know our patterns: /databases, /tests, /rules, /version
+    const fallbackUrl = url.startsWith("/")
+      ? url.slice(1) + ".json"
+      : url + ".json";
+    console.warn(`Fetch for ${url} failed, trying fallback: ${fallbackUrl}`);
+    const r = await fetch(fallbackUrl);
+    if (r.ok) return await r.json();
+    throw e; // Re-throw original error if fallback also fails
+  }
+}
+
 var sqlEditor, jsonEditor;
 
 function getAceTheme() {
@@ -139,11 +161,7 @@ function initializeDataFromWasm() {
 }
 
 function initializeDataFromFetch() {
-  Promise.all([
-    fetch("/tests").then((r) => r.json()),
-    fetch("/rules").then((r) => r.json()),
-    fetch("/version").then((r) => r.json()),
-  ])
+  Promise.all([fetchJSON("/tests"), fetchJSON("/rules"), fetchJSON("/version")])
     .then(([tests, rules, verInfo]) => {
       if (verInfo && verInfo.version) {
         const verEl = document.getElementById("app-version");
@@ -183,8 +201,7 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 function initDatabaseChooser() {
   restoreManualConnectionData();
-  fetch("/databases")
-    .then((r) => r.json())
+  fetchJSON("/databases")
     .then((dbs) => {
       const select = document.getElementById("db-chooser");
       if (!select) return;

@@ -126,4 +126,8 @@ if [ -f "$DEST_DIR/doc/parser_rules.md" ]; then
     chmod 444 "$DEST_DIR/doc/parser_rules.md"
 fi
 
+# Generate Static JSON data
+echo "Generating static JSON data..."
+go run cmd/static_gen/main.go -dest "$DEST_DIR"
+
 echo "Wasm build and asset preparation complete."
