@@ -1,8 +1,8 @@
 # Application
 application:
   name: "mks_sql_parser"
-  version: "1.0.0095"
-  last_build: "2026-01-07 11:06 CET"
+  version: "1.0.0098"
+  last_build: "2026-01-07 11:36 CET"
   host: "localhost"
   port: 8080
   reference_doc_path: "doc/reference_guide.md"
@@ -29,6 +29,14 @@ databases:
     password: "soa123"
     database: "db01"
     schema: "mkr,demo_db,public" # Search path for PostgreSQL
+
+  - name: "supabase"
+    host: "aws-1-eu-west-1.pooler.supabase.com"
+    port: "5432"
+    user: "postgres.tktaldyiismzrrgrzygc"
+    password: "30wTALxoOmdF4bnT"
+    database: "postgres"
+    schema: "public"
 
 # Rules
 rules:

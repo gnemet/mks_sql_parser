@@ -272,6 +272,7 @@ function updateDBUI(connected, name, failed = false) {
   const disconnectBtn = document.getElementById("db-disconnect");
   const runQueryBtn = document.getElementById("run-query-btn");
   const sqlResultPane = document.getElementById("pane-sql-result");
+  const resultPane = document.getElementById("pane-result");
   const gutter2 = document.getElementById("gutter-h2");
   const logsPane = document.getElementById("pane-logs");
   const gutterLogs = document.getElementById("gutter-logs");
@@ -314,6 +315,7 @@ function updateDBUI(connected, name, failed = false) {
     if (gutter2) gutter2.classList.add("hidden");
     if (logsPane) logsPane.classList.add("hidden");
     if (gutterLogs) gutterLogs.classList.add("hidden");
+    if (resultPane) resultPane.style.flex = "1 1 auto";
     select.value = "";
   }
 }

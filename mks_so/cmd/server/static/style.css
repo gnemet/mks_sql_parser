@@ -129,11 +129,11 @@ body.dark-mode .header-right .icon-btn:hover {
   display: flex;
   flex-direction: column;
   gap: 0;
-  /* Gutters handle spacing */
   padding: 1rem;
   padding-bottom: 0.5rem;
   min-height: 0;
   overflow: hidden;
+  background-color: var(--bg-color);
 }
 
 .main-row {
@@ -142,16 +142,7 @@ body.dark-mode .header-right .icon-btn:hover {
   flex-direction: row;
   min-height: 0;
   width: 100%;
-}
-
-/* Left Column: Flex Col */
-.left-column {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 50%;
-  /* Initial width */
-  min-width: 200px;
-  min-height: 0;
+  gap: 0; /* Gutters provide 1px lines */
 }
 
 .right-column {
@@ -160,6 +151,7 @@ body.dark-mode .header-right .icon-btn:hover {
   flex: 1;
   min-width: 200px;
   min-height: 0;
+  gap: 0;
 }
 
 /* Panes */
@@ -167,89 +159,139 @@ body.dark-mode .header-right .icon-btn:hover {
   display: flex;
   flex-direction: column;
   background: var(--pane-bg);
+  /* borders handled by flex container background and gaps, or simplified borders */
   border: 1px solid var(--border-color);
-  border-radius: 6px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   min-width: 0;
   min-height: 0;
   flex: 1;
-  /* By default custom size, logic will set flex-basis or height */
+  border-radius: 8px; /* Slightly larger for modern look */
 }
 
 /* Remove Grid Specifics */
 /* Grid Specifics Removed */
 
-.sql-pane {
-  flex: 0 0 50%;
-  /* Initial height */
+/* Panes Alignment & Radius Logic */
+.editor-pane {
+  border-radius: 0; 
+  margin: 0;
+  border: none; /* Borders handled by gutters and container */
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  background: var(--pane-bg);
+  position: relative;
 }
 
-.result-pane {
-  flex: 1;
-  /* Fills remaining width */
-  margin-left: 0;
-  /* Gutter handles spacing */
+.main-row {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
 }
+
+.left-column {
+  /* no individual borders here, handled by main-row and gutters */
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 50%;
+  min-width: 200px;
+  min-height: 0;
+  gap: 0;
+}
+
+.sql-pane {
+  flex: 0 0 50%;
+}
+
+/* Outer Corners radius handled by .main-row overflow:hidden */
 /* For split panes to properly sizing */
 .left-column,
 .editor-pane,
 .result-pane {
-  display: flex !important;
+  display: flex;
 }
 
-/* Splitters (Gutters) */
+/* Splitters (Gutters) as 1px lines with large grab areas */
 :root {
-  --gutter-size: 10px;
+  --gutter-outer: 10px; /* Invisible grab area */
 }
 
 .gutter {
-  background-color: transparent;
-  transition: background-color 0.2s;
+  background-color: var(--border-color);
   user-select: none;
   display: flex !important;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  position: relative;
+  transition: background-color 0.2s;
 }
 
 .gutter-horizontal {
-  height: var(--gutter-size);
+  height: 1px;
   width: 100%;
-  margin-block: calc(var(--gutter-size) / -2);
   cursor: row-resize;
+  margin-block: 0;
+}
+
+.gutter-horizontal::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--gutter-outer) / -2);
+  bottom: calc(var(--gutter-outer) / -2);
+  left: 0;
+  right: 0;
+  background: transparent;
 }
 
 .gutter-vertical {
-  width: var(--gutter-size);
+  width: 1px;
   height: 100%;
-  margin-inline: calc(var(--gutter-size) / -2);
   cursor: col-resize;
+  margin-inline: 0;
+}
+
+.gutter-vertical::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--gutter-outer) / -2);
+  right: calc(var(--gutter-outer) / -2);
+  top: 0;
+  bottom: 0;
+  background: transparent;
+}
+
+.gutter-horizontal::after,
+.gutter-vertical::after {
+  content: "";
+  background-color: var(--border-color);
+  border-radius: 2px;
+  z-index: 101;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .gutter-horizontal::after {
-  content: "";
-  width: 30px;
+  width: 40px;
   height: 4px;
-  background-color: var(--border-color);
-  border-radius: 2px;
+  margin-top: -1px; /* Center on 1px line */
 }
 
 .gutter-vertical::after {
-  content: "";
-  height: 30px;
+  height: 40px;
   width: 4px;
-  background-color: var(--border-color);
-  border-radius: 2px;
+  margin-left: -1px; /* Center on 1px line */
 }
 
 .gutter:hover {
-  background-color: rgba(124, 131, 253, 0.1);
+  background-color: var(--accent-color);
 }
 
-.gutter-horizontal:hover::after,
-.gutter-vertical:hover::after {
+.gutter:hover::after {
   background-color: var(--accent-color);
+  transform: scale(1.2);
 }
 
 /* Special flag for resizing: disable transitions and selection */
