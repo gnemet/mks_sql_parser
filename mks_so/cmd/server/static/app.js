@@ -52,9 +52,14 @@ async function fetchJSON(url) {
 
 var sqlEditor, jsonEditor;
 
+function isDarkMode() {
+  if (document.body.classList.contains("dark-mode")) return true;
+  if (document.body.classList.contains("light-mode")) return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 function getAceTheme() {
-  const isDark = document.body.classList.contains("dark-mode");
-  return isDark ? "ace/theme/tomorrow_night" : "ace/theme/tomorrow";
+  return isDarkMode() ? "ace/theme/tomorrow_night" : "ace/theme/tomorrow";
 }
 
 function initAceEditors() {
@@ -198,6 +203,46 @@ function initializeDataFromFetch() {
 // Set Year
 const yearEl = document.getElementById("year");
 if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+function initTheme() {
+  const savedTheme = localStorage.getItem("mks_theme");
+  const body = document.body;
+  const icon = document.querySelector("#theme-toggle i");
+
+  if (savedTheme === "dark") {
+    body.classList.add("dark-mode");
+    if (icon) icon.classList.replace("fa-moon", "fa-lightbulb");
+  } else if (savedTheme === "light") {
+    body.classList.add("light-mode");
+    if (icon) icon.classList.replace("fa-lightbulb", "fa-moon");
+  } else {
+    // Automatic mode: CSS handles it, but we need to update the icon
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      if (icon) icon.classList.replace("fa-moon", "fa-lightbulb");
+    }
+  }
+  updateHighlightTheme();
+
+  // Listen for system theme changes if in automatic mode
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (e) => {
+      if (!localStorage.getItem("mks_theme")) {
+        if (icon) {
+          if (e.matches) {
+            icon.classList.replace("fa-moon", "fa-lightbulb");
+          } else {
+            icon.classList.replace("fa-lightbulb", "fa-moon");
+          }
+        }
+        updateHighlightTheme();
+        if (sqlEditor) sqlEditor.setTheme(getAceTheme());
+        if (jsonEditor) jsonEditor.setTheme(getAceTheme());
+      }
+    });
+}
+
+initTheme();
 
 function initDatabaseChooser() {
   restoreManualConnectionData();
@@ -740,12 +785,18 @@ function toggleMinify() {
 function toggleTheme() {
   const body = document.body;
   const icon = document.querySelector("#theme-toggle i");
-  if (body.classList.contains("light-mode")) {
-    body.classList.replace("light-mode", "dark-mode");
-    icon.classList.replace("fa-moon", "fa-lightbulb");
+  const isDark = isDarkMode();
+
+  if (isDark) {
+    body.classList.remove("dark-mode");
+    body.classList.add("light-mode");
+    localStorage.setItem("mks_theme", "light");
+    if (icon) icon.classList.replace("fa-lightbulb", "fa-moon");
   } else {
-    body.classList.replace("dark-mode", "light-mode");
-    icon.classList.replace("fa-lightbulb", "fa-moon");
+    body.classList.remove("light-mode");
+    body.classList.add("dark-mode");
+    localStorage.setItem("mks_theme", "dark");
+    if (icon) icon.classList.replace("fa-moon", "fa-lightbulb");
   }
   updateHighlightTheme();
   if (sqlEditor) sqlEditor.setTheme(getAceTheme());
@@ -754,7 +805,7 @@ function toggleTheme() {
 
 function updateHighlightTheme() {
   if (typeof hljs === "undefined") return;
-  const isDark = document.body.classList.contains("dark-mode");
+  const isDark = isDarkMode();
   const themeLink = document.getElementById("hljs-theme");
   if (themeLink) {
     themeLink.href = isDark
