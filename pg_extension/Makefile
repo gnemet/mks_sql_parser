@@ -1,5 +1,5 @@
 EXTENSION = mks_parser
-DATA = mks_parser--1.0.sql
+DATA = $(wildcard mks_parser--*.sql)
 MODULE_big = mks_parser
 OBJS = mks_parser.o
 
